@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def create_average_action_figure(notwist,name_1,twist,name_2):
+def create_average_action_figure(notwist,name_1,twist,name_2,thermalization=50):
     data = [[notwist,name_1],[twist,name_2]]
     for i,(datas,name) in enumerate(data):
         average_datas = {}
         for simulation in datas:
             average_sum = datas[simulation]['sum'].to_numpy().astype(float)
-            average_datas[simulation] = average_sum[50:].mean()
+            average_datas[simulation] = average_sum[thermalization:].mean()
         data[i][0] = average_datas
     print(data)
     for (datas,name) in data:

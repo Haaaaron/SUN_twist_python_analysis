@@ -5,53 +5,28 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-def load_data(file):
-    f = open(file,'r')
-    data = []
-    beginRead = False
-    beta = None
-    for line in f:
-        if line.startswith('beta'):
-           beta = str(line.split()[1])
-        if line.startswith('twist_coeff'):
-           twist_c = str(line.split()[1])
-        if not beginRead:
-            if line.startswith('MEASURE start'):
-                beginRead = True
-        elif line.startswith('MEASURE end'):
-            beginRead = False
+def create_figure_polar(datas,cols=4, mean = True, title=""):
+    max_radial = 0
+    #Looking for maximal polar radius to have even plot
+    for k,(name,data) in enumerate(datas.items()):
+        data = data.drop(columns=['sum'])
+        if mean:
+            max_radial = max(max_radial,np.max(abs(data.mean().to_numpy())))
         else:
-            if line.startswith('polyakov:'):
-                line = line.split(':')[1]
-                try:
-                    numbers = [x for x in line.split(",")][:-1]
-                    complex_converted = []
-                    for x in numbers:
-                        num = x.split()
-                        complex_converted.append(complex(float(num[0]),float(num[1])))
-                        #complex(num[0])
-                    data.append(complex_converted)
-                except:
-                    data.append(line.split(",")[:-1])
-    #print(data[1])
-    data[0] = data[0] + ["sum"]
-    data = pd.DataFrame(data[1:],columns=data[0])
-    name = beta + " " + twist_c
-    return name,data
-
-def create_figure(datas,cols=4, mean = True, title=""):
+            max_radial = max(max_radial,np.max(abs(data.to_numpy())))
     total = len(datas)
     rows = total // cols
     if total % cols != 0:
         rows += 1
         
     position = range(1,total+1)
-    fig = plt.figure(1)
+    fig = plt.figure(1,figsize=(20,12))
     for k,(name,data) in enumerate(datas.items()):
         ax = fig.add_subplot(rows,cols,position[k],projection="polar")
 
         #delta = data.to_numpy().max()-data.to_numpy().min()
         delta = 0
+        data = data.drop(columns=['sum'])
         if mean:
             angular = np.angle(data.mean().to_numpy())
             radial = abs(data.mean().to_numpy())
@@ -66,10 +41,35 @@ def create_figure(datas,cols=4, mean = True, title=""):
                 ax.plot(angular,radial, 'o', label=column)
         ax.legend(loc='center left', bbox_to_anchor=(1.05, 0.5),fontsize="7")
         ax.set_title(f"Beta={name}")
+        ax.set_rmax(max_radial)
+
     fig.suptitle(title)
 
     #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
-    fig.tight_layout(pad=5.0, h_pad=5)
+    fig.tight_layout(pad=0.4, w_pad=1, h_pad=1.0)
+    plt.show()
+
+def create_figure_real_imag(datas,cols=4, mean = True, title=""):
+    total = len(datas)
+    rows = total // cols
+    if total % cols != 0:
+        rows += 1
+        
+    position = range(1,total+1)
+    fig = plt.figure(1,figsize=(15,7))
+    for k,(name,data) in enumerate(datas.items()):
+        ax = fig.add_subplot(rows,cols,position[k],projection="polar")
+
+        #delta = data.to_numpy().max()-data.to_numpy().min()
+        delta = 0
+        data = data["sum"]
+        print(data)
+        ax.legend(loc='center left', bbox_to_anchor=(1.05, 0.5),fontsize="7")
+        ax.set_title(f"Beta={name}")
+    fig.suptitle(title)
+
+    #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
+    fig.tight_layout(pad=0.4, w_pad=1, h_pad=1.0)
     plt.show()
 
 if __name__ == "__main__":

@@ -22,17 +22,18 @@ def load_data_file_complex(file, data_line):
             if line.startswith(data_line): 
                 line = line.split(':')[1]
                 numbers = [x for x in line.split(",")[:-1]]
-                #print(numbers)
                 complex_converted = []
-                for x in numbers:
-                    num = x.split()
-                    complex_converted.append(complex(float(num[0]),float(num[1])))
-                    #complex(num[0])
-                #print(complex_converted)
+                try:
+                    for x in numbers:
+                        num = x.split()
+                        complex_converted.append(complex(float(num[0]),float(num[1])))
+                        #complex(num[0])
+                    #print(complex_converted)
+                except:
+                    complex_converted = numbers
                 data.append(complex_converted)
-
-
-    data = pd.DataFrame(data[1:],columns=data[0])
+                
+    data = pd.DataFrame(data[1:],columns=data[0]+["sum"])
     name = beta + " " + twist_c
     return name,data
 

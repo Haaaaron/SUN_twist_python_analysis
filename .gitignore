@@ -3,3 +3,4 @@ polyakov/
 current_output/
 output/
 modules.egg-info/
+modules/__pycache__
