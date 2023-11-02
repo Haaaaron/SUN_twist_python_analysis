@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import seaborn as sns
 
 def create_average_action_figure(notwist,name_1,twist,name_2,thermalization=50):
@@ -46,3 +47,4 @@ def create_z_index_heat_map(datas,cols=4,mean=False):
     plt.tight_layout(pad=0.4, w_pad=3, h_pad=1.0)
     #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
     plt.show()
+    

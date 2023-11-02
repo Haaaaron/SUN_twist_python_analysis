@@ -44,7 +44,7 @@ def create_figure_polar(datas,cols=4, mean = True, title=""):
         ax.set_rmax(max_radial)
 
     fig.suptitle(title)
-
+    print("something")
     #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
     fig.tight_layout(pad=0.4, w_pad=1, h_pad=1.0)
     plt.show()
@@ -56,14 +56,16 @@ def create_figure_real_imag(datas,cols=4, mean = True, title=""):
         rows += 1
         
     position = range(1,total+1)
-    fig = plt.figure(1,figsize=(15,7))
+    fig = plt.figure(1,figsize=(20,10))
     for k,(name,data) in enumerate(datas.items()):
-        ax = fig.add_subplot(rows,cols,position[k],projection="polar")
+        ax = fig.add_subplot(rows,cols,position[k])
 
         #delta = data.to_numpy().max()-data.to_numpy().min()
         delta = 0
-        data = data["sum"]
-        print(data)
+        y = data["sum"].to_numpy()
+        x = data.index.to_numpy()
+        ax.plot(x,y.real,label="real")
+        ax.plot(x,y.imag,label="imag")
         ax.legend(loc='center left', bbox_to_anchor=(1.05, 0.5),fontsize="7")
         ax.set_title(f"Beta={name}")
     fig.suptitle(title)
