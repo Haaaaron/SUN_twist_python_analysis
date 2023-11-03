@@ -20,7 +20,6 @@ def compute_with_aa(data):
     for i,(name,datas) in enumerate(data.items()):
         np.savetxt("./modules/error_temp/temp_file.txt",datas.to_numpy())
         error_data = subprocess.run(["/home/haaaaron/bin/aa /home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt"],text=True,shell=True,capture_output=True).stdout.split("\n")
-        print(error_data)
         empty_array = []
         for line in error_data:
             if len(line )!= 0:

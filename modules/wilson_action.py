@@ -3,20 +3,27 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import seaborn as sns
 
-def create_average_action_figure(notwist,name_1,twist,name_2,thermalization=50):
-    data = [[notwist,name_1],[twist,name_2]]
-    for i,(datas,name) in enumerate(data):
+def create_average_action_figure(notwist,name_1,twist,name_2,errors_1=None,errors_2=None,thermalization=50):
+    data = [[notwist,name_1,errors_1],[twist,name_2,errors_2]]
+    for i,(datas,name,errors) in enumerate(data):
         average_datas = {}
         for simulation in datas:
             average_sum = datas[simulation]['sum'].to_numpy().astype(float)
             average_datas[simulation] = average_sum[thermalization:].mean()
         data[i][0] = average_datas
     print(data)
-    for (datas,name) in data:
+    for (datas,name,errors) in data:
         x = [float(x.split()[0]) for x in list(datas.keys())]
         print(x)
         y = list(datas.values())
-        plt.plot(x,y,'o--',label=name)
+        if (errors == None):
+            plt.plot(x,y,'o--',label=name)
+        else:
+            print(errors.values())
+            error = []
+            for key in datas.keys():
+                error.append(float(errors[key]))
+            plt.errorbar(x,y,yerr=error,fmt='o--',label=name)
         #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
     plt.title(r'Wilson action total average with respect to $\beta$')
     plt.xlabel(r'$\beta$')
