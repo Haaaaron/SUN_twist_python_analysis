@@ -5,3 +5,7 @@ output/
 modules/__pycache__
 aa/
 modules/error_temp/
+modules/fsh_temp/
+fsh/
+output_sun3/
+output_sun4/
