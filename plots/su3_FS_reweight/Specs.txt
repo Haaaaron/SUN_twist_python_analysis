@@ -1,0 +1,4 @@
+DIM 10,10,20,2
+TRAJ 60000
+FOLDERS NOTWIST /home/haaaaron/SUN_twist_python_analysis/output_sun3/notwist_joined_more
+FOLDER TWIST /home/haaaaron/SUN_twist_python_analysis/output_sun3/twist_joined_more

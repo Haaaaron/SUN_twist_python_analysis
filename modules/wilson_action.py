@@ -29,9 +29,10 @@ def create_average_action_figure(notwist,name_1,twist,name_2,errors_1=None,error
     plt.legend()
     plt.show()
     
-def create_average_action_figure_jackknife(notwist,name_1,twist,name_2,errors_1=None,errors_2=None,FS=False,plot_fmt="-"):
+def create_average_action_figure_jackknife(notwist,name_1,twist,name_2,errors_1=None,errors_2=None,FS=False,plot_fmt="-",fig_text=None):
     data = [[notwist,name_1,errors_1],[twist,name_2,errors_2]]
-    plt.figure(figsize=(12,10))
+    plt.figure(figsize=(8,6))
+    #plt.figure()
 
     for (datas,name,errors) in data:
         if (errors == None):
@@ -50,25 +51,30 @@ def create_average_action_figure_jackknife(notwist,name_1,twist,name_2,errors_1=
         plt.title(r'Wilson action total average with respect to $\beta$ produced with jackknife')
     plt.xlabel(r'$\beta$')
     plt.ylabel(r'$\langle$ S $\rangle$')
+    if fig_text: plt.figtext(0,0,fig_text,fontstyle="italic")
     #plt.legend()
     plt.show()
     
-def create_twist_notwist_difference_figure_jackknife(notwist,twist,errors_1=None,errors_2=None,plot_fmt="-"):
-    plt.figure(figsize=(12,10))
+def create_twist_notwist_difference_figure_jackknife(notwist,twist,errors_1=None,errors_2=None,FS=False,plot_fmt="-",fig_text=None):
+    plt.figure(figsize=(8,6))
     for (y_notwist,y_twist) in zip(notwist[1],twist[1]):
         plt.plot(notwist[0],y_twist-y_notwist,plot_fmt)
         #break
 
         #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
-    plt.title(r'Wilson action difference between twist and notwist with respect to $\beta$ using jackknife and FS reweighting')
+    if FS:    
+        plt.title(r'Wilson action difference between twist and notwist with respect to $\beta$ using jackknife and FS reweighting')
+    else:
+        plt.title(r'Wilson action total average with respect to $\beta$ produced with jackknife')
     plt.xlabel(r'$\beta$')
     plt.ylabel(r'$\langle S_{t} - S_{nt} \rangle$')
+    if fig_text: plt.figtext(0,0,fig_text,fontstyle="italic")
     #plt.legend()
     plt.show()
     
-def create_integral_figure_jackknife(notwist,twist,mean=True,plot_fmt='-',N=10):
+def create_integral_figure_jackknife(notwist,twist,mean=True,plot_fmt='-',fig_text=None,N=10,FS=False):
     integrated_ys = []
-    plt.figure(figsize=(12,10))
+    plt.figure(figsize=(8,6))
     for (y_notwist,y_twist) in zip(notwist[1],twist[1]):
         x=notwist[0]
         y = y_twist-y_notwist
@@ -83,13 +89,18 @@ def create_integral_figure_jackknife(notwist,twist,mean=True,plot_fmt='-',N=10):
     print(y_err)
     if mean:
         plt.errorbar(x,y_int,yerr=np.sqrt(N-1)*y_err,fmt=plot_fmt,ecolor="r")
-    plt.title(r'Integral of difference between twist and no-twist wilson action. Averaged over set of jackknife data.')
+    if FS: 
+        plt.title(r'Integral of difference between twist and no-twist wilson action. Averaged over set of jackknife data paired with FS reweighting.')
+    else: 
+        plt.title(r'Integral of difference between twist and no-twist wilson action. Averaged over set of jackknife data.')
+
     plt.xlabel(r'$\beta$')
     plt.ylabel(r'$\int \langle S_{t} - S_{nt} \rangle$')
+    if fig_text: plt.figtext(0,0,fig_text,fontstyle="italic")
     #plt.legend()
     plt.show()
 
-def create_z_index_heat_map(datas,cols=4,mean=False):
+def create_z_index_heat_map(datas,cols=4,mean=False,thermalization=100):
     total = len(datas)
     rows = total // cols
     if total % cols != 0:
@@ -98,14 +109,14 @@ def create_z_index_heat_map(datas,cols=4,mean=False):
     position = range(1,total+1)
     fig = plt.figure(1,figsize=(15,7))
     for k,(name,data) in enumerate(datas.items()):
-        no_sum = data.drop(["sum"],axis=1)
+        no_sum = data.drop(["sum"],axis=1)[thermalization:]
         ax = fig.add_subplot(rows,cols,position[k])
         #ax.imshow(datas[name], cmap ="RdYlBu",aspect='auto')
         delta = no_sum.to_numpy().max()-no_sum.to_numpy().min()
         #print(data.mean().to_numpy())
         #print(list(data.columns.values))
         if mean:
-            ax.plot(no_sum[50:].columns.values,no_sum[50:].mean())
+            ax.plot(no_sum.columns.values,no_sum.mean())
         else:
             sns.heatmap(no_sum,ax=ax)
         ax.set_title(f"{name}")

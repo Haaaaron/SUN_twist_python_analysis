@@ -30,10 +30,15 @@ def compute_with_aa(data):
         error_dict[name] = error_data
     return error_dict
 
-def compute_with_aa_jackknife(data,column,bins):
+def compute_with_aa_jackknife(data,column,bins,only_sum=True,thermalization=1000):
     error_dict = {}
     for i,(name,datas) in enumerate(data.items()):
-        np.savetxt("./modules/error_temp/temp_file.txt",datas.to_numpy()[400:])
+        print(datas.to_numpy()[thermalization:])
+        if only_sum: 
+            np.savetxt("./modules/error_temp/temp_file.txt",datas["sum"].to_numpy()[thermalization:])
+            column=1
+        else:
+            np.savetxt("./modules/error_temp/temp_file.txt",datas.to_numpy()[thermalization:])
         error_data = subprocess.run([f"/home/haaaaron/bin/aa -d {column} -j {bins} /home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt"],text=True,shell=True,capture_output=True).stdout.split("\n")
         jackknife_data = subprocess.run([f"/home/haaaaron/bin/aa -d {column} -J {bins} /home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt"],text=True,shell=True,capture_output=True).stdout.split("\n")        
         empty_array = []
@@ -46,6 +51,8 @@ def compute_with_aa_jackknife(data,column,bins):
 
 def compute_with_fsh_jackknife(data,column,bins,system_size,min_b,max_b,path="/home/haaaaron/SUN_twist_python_analysis/modules/fsh_temp/",acc="0.001"):
     fsh_list_lines = []
+    subprocess.run(f"rm {path}*",shell=True)
+
     for i,(name,datas) in enumerate(data.items()):
         file_posfix = name.split()[0]
         file_name = f"r_{file_posfix}"
@@ -61,7 +68,7 @@ def compute_with_fsh_jackknife(data,column,bins,system_size,min_b,max_b,path="/h
             txt_file.write(line + "\n")
     print("Runnin fsh")
     out = subprocess.run(f"/home/haaaaron/bin/fsh -t400 -d1 -b{min_b}:{acc}:{max_b} -x -j{bins} -J {path}jackknife_output {path}fsh_list ",text=True,shell=True,capture_output=True)
-    jackknife,beta,action = np.loadtxt("./modules/fsh_temp/jackknife_output",usecols=(0,2,3),unpack=True)
+    jackknife,beta,action = np.loadtxt(f"{path}jackknife_output",usecols=(0,2,3),unpack=True)
     jackknife_data = []
     print("Packing data")
     for ind in np.unique(jackknife):

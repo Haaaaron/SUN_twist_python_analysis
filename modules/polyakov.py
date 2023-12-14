@@ -20,7 +20,7 @@ def create_figure_polar(datas,cols=4, mean = True, title=""):
         rows += 1
         
     position = range(1,total+1)
-    fig = plt.figure(1,figsize=(20,12))
+    fig = plt.figure(1,figsize=(40,40))
     for k,(name,data) in enumerate(datas.items()):
         ax = fig.add_subplot(rows,cols,position[k],projection="polar")
 
@@ -39,7 +39,7 @@ def create_figure_polar(datas,cols=4, mean = True, title=""):
                 radial = abs(data[column].to_numpy())
                 #print(radial)
                 ax.plot(angular,radial, 'o', label=column)
-        ax.legend(loc='center left', bbox_to_anchor=(1.05, 0.5),fontsize="7")
+        #ax.legend(loc='center left', bbox_to_anchor=(1.05, 0.5),fontsize="7")
         ax.set_title(f"Beta={name}")
         ax.set_rmax(max_radial)
 

@@ -1,0 +1,3 @@
+DIM 24,24,36,2
+TRAJ 120000
+FOLDERS /home/haaaaron/SUN_twist_python_analysis/output_sun4/traj_120000_t2/output-9.5-10.5
