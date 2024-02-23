@@ -33,7 +33,7 @@ def compute_with_aa(data):
 def compute_with_aa_jackknife(data,column,bins,only_sum=True,thermalization=1000):
     error_dict = {}
     for i,(name,datas) in enumerate(data.items()):
-        print(datas.to_numpy()[thermalization:])
+        #print(datas.to_numpy()[thermalization:])
         if only_sum: 
             np.savetxt("./modules/error_temp/temp_file.txt",datas["sum"].to_numpy()[thermalization:])
             column=1
@@ -48,6 +48,25 @@ def compute_with_aa_jackknife(data,column,bins,only_sum=True,thermalization=1000
         
         error_dict[name] = (error_data[0].split()[1:3],empty_array)
     return error_dict
+
+
+def compute_with_aa_autocorrelation(data,thermalization=1000):
+    autocorr_dict = {}
+    for i,(name,datas) in enumerate(data.items()):
+        #print(datas.to_numpy()[thermalization:])
+        np.savetxt("./modules/autocorrelation_temp/temp_file.txt",datas["sum"].to_numpy()[thermalization:])
+        column=1
+
+        aa_output = subprocess.run([f"/home/haaaaron/bin/aa -d {column} /home/haaaaron/SUN_twist_python_analysis/modules/autocorrelation_temp/temp_file.txt"],text=True,shell=True,capture_output=True).stdout.split("\n")
+        try:
+            autocorrelation = float(aa_output[0].split()[3][:-1])
+            autocorrelation_error = float(aa_output[0].split()[4][:-1])
+            autocorr_dict[name] = (autocorrelation,autocorrelation_error)
+
+        except:
+            autocorrelation,autocorrelation_error=aa_output[0].split()[3].split("(")
+            autocorr_dict[name] = (float(autocorrelation),float(autocorrelation_error[:-1]))
+    return autocorr_dict
 
 def compute_with_fsh_jackknife(data,column,bins,system_size,min_b,max_b,path="/home/haaaaron/SUN_twist_python_analysis/modules/fsh_temp/",acc="0.001"):
     fsh_list_lines = []
@@ -92,3 +111,5 @@ def sort_plaquette_dict(plaquette_dict):
     keys = list(plaquette_dict.keys())
     keys = sorted(keys,key = lambda x: float(x.split()[0]))
     return {i : plaquette_dict[i] for i in keys}
+
+    
