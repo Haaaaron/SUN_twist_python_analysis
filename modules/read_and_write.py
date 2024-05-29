@@ -88,6 +88,15 @@ def load_from_folder(folder,data_line,real_or_complex):
     data_per_file = {i: data_per_file[i] for i in myKeys}
     return data_per_file
 
+def write_reweight_data(data, file_name):
+    data_to_write = np.concatenate(([data[0]],data[1]))
+    np.savetxt(file_name,data_to_write)
+
+def read_reweight_data(file_name):
+    data = np.loadtxt(file_name)
+    #print(data)
+    return (data[0],data[1:],file_name.split("_")[-2])
+
 if __name__ == "__main__":
     print(load_from_folder("./current_output/notwist","plaquette:","real"))
     #load_data_file("../current_output/")

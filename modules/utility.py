@@ -15,10 +15,10 @@ def select_subset(data,x,y,stride=1):
         
     return subset_data
 
-def compute_with_aa(data):
+def compute_with_aa(data,thermalization=50):
     error_dict = {}
     for i,(name,datas) in enumerate(data.items()):
-        np.savetxt("./modules/error_temp/temp_file.txt",datas.to_numpy())
+        np.savetxt("./modules/error_temp/temp_file.txt",datas.to_numpy()[thermalization:,:])
         error_data = subprocess.run(["/home/haaaaron/bin/aa /home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt"],text=True,shell=True,capture_output=True).stdout.split("\n")
         empty_array = []
         for line in error_data:
@@ -68,15 +68,14 @@ def compute_with_aa_autocorrelation(data,thermalization=1000):
             autocorr_dict[name] = (float(autocorrelation),float(autocorrelation_error[:-1]))
     return autocorr_dict
 
-def compute_with_fsh_jackknife(data,column,bins,system_size,min_b,max_b,path="/home/haaaaron/SUN_twist_python_analysis/modules/fsh_temp/",acc="0.001"):
+def compute_with_fsh_jackknife(data,column,bins,system_size,min_b,max_b,path="/home/haaaaron/SUN_twist_python_analysis/modules/fsh_temp/",acc="0.001",thermalization_range=(1000,2000)):
     fsh_list_lines = []
     subprocess.run(f"rm {path}*",shell=True)
-
     for i,(name,datas) in enumerate(data.items()):
         file_posfix = name.split()[0]
         file_name = f"r_{file_posfix}"
-        number_of_lines = len(datas["sum"])
-        np.savetxt(f"./modules/fsh_temp/{file_name}",datas["sum"],fmt='%.18f')
+        number_of_lines = len(datas["sum"][thermalization_range[0]:thermalization_range[1]])
+        np.savetxt(f"./modules/fsh_temp/{file_name}",datas["sum"][thermalization_range[0]:thermalization_range[1]],fmt='%.18f')
         fsh_list_lines.append(f"{file_posfix} {number_of_lines} {path}{file_name}")
    # print(np.array(fsh_list_lines))
     #np.savetxt(f"./modules/fsh_temp/fsh_list",np.array(fsh_list_lines))
@@ -86,14 +85,13 @@ def compute_with_fsh_jackknife(data,column,bins,system_size,min_b,max_b,path="/h
         for line in fsh_list_lines:
             txt_file.write(line + "\n")
     print("Runnin fsh")
-    out = subprocess.run(f"/home/haaaaron/bin/fsh -t400 -d1 -b{min_b}:{acc}:{max_b} -x -j{bins} -J {path}jackknife_output {path}fsh_list ",text=True,shell=True,capture_output=True)
+    out = subprocess.run(f"/home/haaaaron/bin/fsh -t100 -d1 -b{min_b}:{acc}:{max_b} -x -j{bins} -J {path}jackknife_output {path}fsh_list ",text=True,shell=True,capture_output=True)
     jackknife,beta,action = np.loadtxt(f"{path}jackknife_output",usecols=(0,2,3),unpack=True)
     jackknife_data = []
     print("Packing data")
     for ind in np.unique(jackknife):
         mask = jackknife == ind
         jackknife_data.append(action[mask])
-            
     return (beta[mask],np.array(jackknife_data), name.split()[1])
 
 def construct_jackknife_functions(data):
@@ -112,4 +110,15 @@ def sort_plaquette_dict(plaquette_dict):
     keys = sorted(keys,key = lambda x: float(x.split()[0]))
     return {i : plaquette_dict[i] for i in keys}
 
+def compute_covariance(twist,notwist,thermalization=50):
+    cov_dict = {}
+    for x in zip(twist,notwist):
+        t_sample = twist[x[0]]["sum"][thermalization:]
+        nt_sample = notwist[x[1]]["sum"][thermalization:]
+        mean_t = np.mean(t_sample)
+        mean_nt = np.mean(nt_sample)
+        num_sample = len(t_sample)
+        cov = np.sum([(val[0]-mean_t)*(val[1]-mean_nt) for val in zip(t_sample,nt_sample)])/num_sample
+        cov_dict[x[0]] = cov
+    return cov_dict
     
