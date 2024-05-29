@@ -1,0 +1,332 @@
+fsh -- Ferrenberg-Swendsen multihistogram analysis program
+
+  Kari Rummukainen 1990 - 2002
+
+This program combines Monte Carlo measurements from several
+separate runs and couplings together for a reweighting analysis.
+The code uses completeley non-binning method.
+For some background, see: Ferrenberg and Swendsen, Computers in Physics,
+Sept/Oct 1989.
+
+The command `fsh' alone prints the following help message:
+
+ usage: fsp [-opt] datafile > results
+  v              : verbose
+  X              : raw data without FS analysis
+  b value OR min:step:max : reweight to this value of the coupling,
+                   OR to the given vector of values
+  B value OR min:step:max : reweight also wrt. second reweighting component 
+  s str          : use str for aux. filenames [datafile name]
+  S(+)           : load settings from .values (append to it) [save to it]
+  x              : fit data 2 at a time
+  f/q            : F/S
+  z b_im OR min:step:max : partition function, with imaginary beta
+  d num          : data number
+  D 'expr'       : get data and do arithmetics (see EXPRESSIONS below)
+  2              : second moment of data
+  M power        : moment power of data
+  4[B]           : calculate Binder's 4th cumulant (sub the average part)
+  V              : divide value by volume
+  E/EC           : 2nd moment eigenmatrix analysis
+  p/P value      : low/highpass filter in data
+  C cut_value    : discontinuity value in data
+  G cut1:cut2    : a gap in the data to define cut
+  h              : fs-histogram
+    A bins[,b2]  : number of bins
+    W            : equal weight beta search, from cut [W+ search beta2 too]
+    H            : equal height beta search, from cut [H+] 
+    L l1,l2,l3   : number of points to find the extrema [5,10,5]
+    F            : assume constant (flat) central part
+    R            : print the extrema data
+    o/O value    : low/highpass x-value in histograms
+  g              : double histogram with datas d1,d2
+  Q              : print delta F, using cut_value(s) to separate phases
+  c              : do not calculate time correlations
+  j num          : jackknife with num blocks
+  J name/=       : print jackknifed data/to stdout
+  l number       : maximum loop limit, 0-no limit [100]
+  r double       : relative accuracy used [1e-8]
+  t number       : thermalize n iterations
+  I n1:n2        : use only lines n1 to n2
+
+Option can be chained together, ex. fsh -v2x -d1 dfile
+
+HOW TO USE THE PROGRAM:
+
+1)  Datafiles: fsh uses formatted (ascii) or special unformatted datafiles.  
+Each line contains one set of measurements, measured from
+single configuration.  Numbering starts from 1.
+
+Generic reweight: make a summary file (which I call `dfile' in the
+following) of the runs, with the format
+
+  ascii reweight-observable    (or ascii -> reweight, if using binary data)
+  beta_1   N_1  [w] measure_1
+  beta_2   N_2  [w] measure_2
+  ...
+
+Here 
+ ascii/reweight      : literally, just a word `ascii' or `reweight'
+ reweight-observable : the observable wrt. which the reweighting is done,
+                for example: 
+                 #5    measurement number 5 (numbering starts from 1, not 0!)
+                 (#4+#8)*1.02/2   combine 4 and 8 as indicated
+                The syntax is described in detail in EXPRESSIONS below.
+ beta_i       : coupling constant of run i (so that the probability in the
+                simulation is p ~ exp[-beta_i * rw-obs] ).
+ N_i          : total number of measurements at run i 
+ measure_i    : the name of the measurement file
+ w            : OPTIONAL: if the original run is MULTICANONICAL, 
+                measurement #1 must contain the multicanonical weight 
+                factor which gives the correct relative probability 
+                for this measurement.  Literally, just letter 'w'
+                (this means that measurement files cannot be named w).
+                NOTE: this may work less than optimally with multiple
+                measurement files.
+
+Preferentially, the beta-values should be in increasing order.  Same
+beta can be repeated, the code joins those measurements together
+automatically.  The file can also contain only one run.
+
+1b) REWEIGHTING wrt. 2 PARAMETERS:
+
+Prepare dfile with structure
+
+  b2 ascii  obs1; obs2             (or ascii -> reweight)
+  beta1_1 beta2_1  N_1   measure_1
+  beta1_2 beta2_2  N_2   measure_2
+  ...
+
+This is as before, except there are 2 reweight-observables, separated by
+a semicolon, for example:  
+   #2; #3  
+   #2+#3; #2-#3     
+and beta1_i, beta2_i are the parameter values where the run had been performed.
+
+
+2) USING THE PROGRAM
+
+I recommend that one first solves for the `free energy parameters' for
+the whole dataset, and after these are solved does the reweighting proper
+for the desired quantities.  NOTE THAT ONLY THE JACKKNIFE OPTION
+GIVES RELIABLE ERRORS.
+
+Some general-purpose options for the program:
+  -v     : turns on the verbose mode, recommended - prints information
+  -t num : drops num measurements from the beginning of each
+           dataset for thermalization.  Generally, it is better
+           to prepare the datafiles so that the thermalization is already
+           taken into account.
+
+a) Solving the parameters
+
+The parameters are solved with the command [with 10 jackknife blocks]
+
+  fsh -v [-j10] dfile
+
+This produces files `dfile.values' [and `dfile.jack'].  (-v turns
+on the verbose mode).  If other root name than `dfile' is desired,
+then
+
+  fsh -vs othername -j10 dfile
+
+produces files `othername.values' and `othername.jack'
+
+NOTE: Often the Newton-Raphson fails to converge properly.  This is
+indicated by output lines like (in -v mode):
+
+   ...
+   - NR - 1       norm: 0.21714 fork: 3
+   - NR - 2       norm: 0.216983 fork: 3
+   - NR - 3       norm: 0.21682 fork: 3
+   ...
+
+The norm does not converge, and the `fork' ( ~ fudge factor to help
+convergence) is not equal to 1.  This can occur only when there are
+more than two beta-values to be combined.  In this case I recommend
+the option -x:
+
+  fsa -vx -j10 datafile
+
+This does the free energy solving using only two neighboring betas
+at a time, and stepping through the whole list of runs.
+This has never failed to converge, and, when both options converge,
+I have not noticed any significant differences with the output.
+WARNING: this does not guarantee that the reweighting makes sense!
+If the data is not `good enough' for reweighting (insufficient
+overlap between histograms, poor statistics) the results will
+be equally poor.
+
+Other options relevant at this stage:
+
+  -c        : do _not_ use autocorrelations of the runs.  In some
+              cases, this may improve convergence.  In principle, the
+              autocorrelations should be used to give correct statistical
+              weight for individual runs.  However, this tends to 
+              give low weights to the most interesting runs -- the
+              ones around the critical point with the long autocorrelation.
+              Using this option fudges their significance larger.  You
+              have been warned.  This has no effects in single histogram
+              reweighting.
+  -I n1:n2  : instead of using all betas, use only runs from n1 to n2,
+              for example -I2:3 uses only two runs with beta_2 and beta_3
+              WARNING-SEE I-OPTION AT b)
+  -l ,-r    : convergence parameters for N-R (usually no need to tune)
+  -S+       : use old data as a starting point (usually not important)
+
+
+b) Reweighting measurements:
+
+The reweighting is done with the command (for example)
+
+  fsh -vS -j10 -D'#4' -b5.1:0.01:5.6  dfile > output
+
+where
+  -S              : indicates that the old datafile.values and 
+                    datafile.jack -files are to be used.  
+  -D #4           : reweight data number 4. Accepts also operations, 
+                    for example -D'(23*#3 + exp(#2))'.  See EXPRESSIONS
+  -d4             : equivalent to -D#4. Does not accept any arithmetic ops.
+  -b b1:bstep:b2  : reweight to beta-values from b1 to b2, with step bstep
+                    (no spaces around `:')
+  -j10            : 10 Jackknife blocks.  THIS HAS TO BE EQUAL TO THE
+                    NUMBER OF BLOCKS USED IN THE STAGE a).
+
+The output is a list:
+
+ beta  value  error
+ ...
+
+Again, the error is reliable only when jackknife is used.
+The program produces error values also without the jackknife!
+
+
+c) More than one reweighted measurement: 
+
+-D -option accepts multiple expressions, separated by commas:
+
+  -D 'expr1','expr2','expr3'
+
+it will print out the result as
+
+ beta value1 error1 value2 error2 value3 error3
+ ...
+
+
+USING 2 REWEIGHTING PARAMETERS (beta1,beta2):  Now the program naturally 
+requires values for both parameters; thus, we have to give option -B:
+  
+  fsh ... -b5.1 -B2.1 dfile  
+  fsh ... -b5.1:0.01:5.6 -B2 dfile           keep beta2 fixed to 2 for all beta1
+  fsh ... -b5.1 -B1.9:0.1:2.5 dfile          keep beta1 fixed to 5.1 for all beta2
+  fsh ... -b5.1:0.1:5.6 -B1.9:0.1:2.5 dfile  both beta1 and beta2 vary. 
+
+In the last case the variation is in lockstep, i.e. (5.1,1.9), (5.2,2.0), ...
+The length of -B -vector is adjusted to be equal of the -b -vector.
+-B has to come after -b on the command line!
+
+Other options:
+  -2              : second moment of the data <x^2 - <x>^2>
+  -4              : Binder 4th order cumulant
+  -A              : correlation with reweight-'action' <x*A - <x>*<A>>
+  -V              : divide the output by volume
+  -f              : print free energy (~ integral of the action)
+  -I n1:n2        : if this was used in a), it HAS TO BE USED HERE TOO
+  -J filename     : prints the jackknife blocks of the output, one
+                    block after another, to the file `filename'.  
+                    This substitutes standard output if `=' is used
+                    as the filename.  This output is very useful
+                    if further jackknife analysis of the data is required:
+                    For example, searching for minimum/maximum of the
+                    reweighted output (see program jack_extr)
+  -p/P value      : low/highpass filter for the data, if this is 
+                    for some strange reason needed.
+
+
+c)  Reweighting histograms
+
+Histograms are produced with the command
+
+  fsh -vS -j10 -A50 -h -D#3 -b0.0213  dfile > histogramfile
+
+where
+  -h         : produce histogram of data -D (or -d)
+  -A n_bins  : n_bins bins, default 100, if -A is not present
+
+There are oodles of other options related to TWO-PEAK histograms, 
+mostly to do with surface tension analysis, and sometimes tricky to use.
+The important ones are
+  -C cut_value  : define a value to separate left and right peaks of the
+                  histograms (see -W, -H)
+  -W , -H       : search for beta which gives the equal weight/equal height
+                  values for the histograms, where the peaks are defined
+                  with the cut_value (-C).  Uses -h beta as a starting
+                  beta-value.
+  -G cut1:cut2  : Instead of single cut, use a gap: 
+                  x_(left peak) <= cut1, cut2 <= x_(right peak)
+  -L l1,l2,l3   : for height analysis (-H) fit the histograms
+                  with 2nd degree polynomials around the extrema
+                  using l1, l2 and l3 bins for the left max, minimum,
+                  right max, respectively (can be tricky!)
+
+For example,
+
+ fsh -vSj10 -b0.041 -D'abs(#3)+abs(#7)' -hH -C2800 -L9,9,9 dfile
+
+finds the equal-height histogram of the data after -D, using separation
+value 2800, and fitting the parabola with 9 points
+
+
+3) EXPRESSIONS
+
+Both the reweighting "action" (in file "dfile" above, after
+"ascii" or "reweight") and the reweighted data with option
+-D can be composed from general arithmetic expressions, combining
+several input elements.  The expressions
+can contain 
+
+ - Numerical constants (these are converted to double)
+ - References to the datafile columns.  These are marked
+   by #1, #2  etc.
+ - Arithmetic operations +, -, *, /, ^ (power), % (modulo (fmod))
+ - Logical operations ==, !=, <, <=, >, >= 
+   which always return 1 or 0
+ - Functions: 
+   1-parameter functions  f(a), where a is an expression and
+   f is:
+     sqrt abs sin cos tan exp log asin acos atan sinh cosh
+     tanh asinh acosh atanh floor ceil 
+   2-parameter functions
+     min(a,b)  max(a,b)  which return min or max of expressions 
+     a and b
+ - parentheses () as needed
+
+ Operator precedence: ^ [*/%] [+-] [Logical ops]
+   can be overridden with () as usual.  In case of equal precedence,
+   operators are evaluated from left to right.
+
+
+ EXAMPLES:
+ #3         - just data element #3
+ 2*#3 + 1   - multiplied by 2, and add 1
+ cos(#5)^(tan(#2/#4) + 3)   - etc..
+ 2          - just number 2!  Don't do -D2, you will always get 2 for
+              an answer.
+
+ Both for -D and the reweighting "action" variable you can use
+ ';' to separate 2 (or more, for -D) 
+
+ NOTE: for -D, you have to protect the expression with "" or '' 
+ from shell!
+
+-----------------------------------------------
+To compile:
+  cc -O -o fsh  fsh.c io_unformat.c calclist.c dblarr.c svdecomp.c polyfit.c jacobi.c halt.c -lm
+
+In addition to above .c -files a header file `stuff.h' is needed.
+-----------------------------------------------
+
+The program may seem slow'ish, but on a Cray-C90 it is a snap
+(vectorizes!).  The slowness is due to repeated balancing (for
+numerical stability), which more than doubles the cpu-time needed.
+
