@@ -1,5 +1,6 @@
 import sys
 import os
+import io
 import pandas as pd
 import numpy as np
 
@@ -21,19 +22,23 @@ def load_data_file_complex(file, data_line):
         else:
             if line.startswith(data_line): 
                 line = line.split(':')[1]
-                numbers = [x for x in line.split(",")[:-1]]
+                numbers = [x for x in line.split(",")[:]]
                 complex_converted = []
                 try:
                     for x in numbers:
                         num = x.split()
                         complex_converted.append(complex(float(num[0]),float(num[1])))
                         #complex(num[0])
-                    #print(complex_converted)
                 except:
-                    complex_converted = numbers
+                    numbers[-1] = numbers[-1].replace('\n','')
+                    
+                    complex_converted = [x.replace(' ','') for x in numbers]
                 data.append(complex_converted)
-                
-    data = pd.DataFrame(data[1:],columns=data[0]+["sum"])
+    if (data[1][-1] == "sum"):
+        data = pd.DataFrame(data[1:],columns=data[0]+["sum"])
+    else:
+        print(data[0])
+        data = pd.DataFrame(data[1:],columns=data[0])
     name = beta + " " + twist_c
     return name,data
 
@@ -96,6 +101,46 @@ def read_reweight_data(file_name):
     data = np.loadtxt(file_name)
     #print(data)
     return (data[0],data[1:],file_name.split("_")[-2])
+
+
+def read_surface_data(file_path, file_name="surface_smooth"):
+    # Initialize an empty list to store all dataframes read from the file
+    all_dfs = []
+    
+    # Open the file and read line by line
+    with open(file_path + "/" + file_name, 'r') as file:
+        lines = file.readlines()
+        
+    # Initialize variables to track the start of each dataframe section
+    header_found = False
+    data_start_index = None
+    
+    # Iterate over each line in the file
+    for idx, line in enumerate(lines):
+        line = line.strip()
+        
+        if idx == 0:
+            volume = np.array(line.split(" ")[1:]).astype(int)
+            print(volume)
+        # Check if the line starts with 'volume:'
+        if line.startswith('volume:'):
+            # If header is found and data_start_index is set (indicating previous dataframe section),
+            # extract the dataframe section from data_start_index to current index (exclusive)
+            if header_found and data_start_index is not None:
+                df_section = lines[data_start_index:idx]
+                df = pd.read_csv(io.StringIO('\n'.join(df_section)), delim_whitespace=True, skiprows=1)
+                all_dfs.append(df)
+            # Reset header_found and set new data_start_index
+            header_found = True
+            data_start_index = idx
+        
+    # After loop ends, extract the last dataframe section if any
+    if header_found and data_start_index is not None:
+        df_section = lines[data_start_index:]
+        df = pd.read_csv(io.StringIO('\n'.join(df_section)), sep='\s+', skiprows=1)
+        all_dfs.append(df)
+    
+    return volume,all_dfs
 
 if __name__ == "__main__":
     print(load_from_folder("./current_output/notwist","plaquette:","real"))

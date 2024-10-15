@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
 import os
+from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation 
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
 FIG_SIZE=(10,20)
 plt.rcParams.update({'font.size': 11})
 
@@ -157,6 +161,39 @@ def create_figure_real_imag(datas,cols=4, mean = True, title=""):
     fig.tight_layout(pad=0.4, w_pad=1, h_pad=1.0)
     #plt.show()
     plt.savefig("./output_polyakov.svg")
+    
+def animate_polar(data):
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    max_magnitude = np.abs(data.values).max()
+    cmap = plt.cm.jet
+    index = np.array(list(map(int,data.columns)))
+    norm = Normalize(vmin=index.min(), vmax=index.max())
+    #ax.set_rlabel_position(-22.5)
+    # handles = []
+    # for i, z_index in enumerate(index):
+    #     handles.append(ax.plot([], [], marker='o', color=cmap(norm(i)), label=f'z-index: {z_index}')[0])
+        
+    def update(frame):
+        ax.clear()
+        complex_numbers = data.iloc[frame, :]
+        angles = np.angle(complex_numbers)
+        magnitudes = np.abs(complex_numbers)
+        ax.set_ylim(0, max_magnitude)  # Set a fixed y-limit for better comparison across frames
+        for i, (theta, r) in enumerate(zip(angles, magnitudes)):
+            ax.plot(theta, r, marker='o',color=cmap(norm(i)), label=f'z-index: {index[i]}')  # frame + 1 to skip the 'angle' column
+        #ax.set_rlabel_position(-22.5)
+        #sm = ScalarMappable(cmap=cmap, norm=norm)
+        #sm.set_array([])
+        
+    #ax.legend(handles, [f'z-index: {z}' for z in index], loc='upper left', bbox_to_anchor=(1.05, 1), fontsize='small')
+    # Create the animation
+    ani = FuncAnimation(fig, update, frames=len(data), interval=100, repeat=True)
+    # Save the animation
+    Writer = animation.writers['ffmpeg']
+    writer = Writer(fps=10, metadata=dict(artist='Me'), bitrate=1800)
+    ani.save('/home/haaaaron/SUN_twist_python_analysis/videos/polar_animation.mp4', writer=writer,dpi=100)
+
+    # Display the animation
 
 if __name__ == "__main__":
     datas = {}
