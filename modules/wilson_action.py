@@ -133,7 +133,6 @@ def create_integral_figure_jackknife(notwist,twist_list,dim,mean=True,plot_fmt='
         for (y_notwist,y_twist) in zip(notwist[1],twist[1]):
             x=notwist[0]
             y = y_twist-y_notwist
-            print(y[-1])
             #y_int = integrate.cumtrapz(y,x,initial=0)
             y_int = integrate.cumulative_trapezoid(y,x,initial=0)
 
@@ -147,11 +146,11 @@ def create_integral_figure_jackknife(notwist,twist_list,dim,mean=True,plot_fmt='
         for block in integrated_ys:
             errors += (block - y_mean)**2
         errors = np.sqrt((N-1)/N*errors)
-        print(np.max(errors))
         if mean:
             volume=dim[0]*dim[1]*dim[2]*dim[3]
             if len(twist_list) != 1: plt.errorbar(x,y_mean*volume*6*dim[3]**2/(dim[0]*dim[1]),yerr=errors*volume*6*dim[3]**2/(dim[0]*dim[1]),fmt=plot_fmt,capsize=1,label=name)
             else: plt.errorbar(x,y_mean*volume*6*dim[3]**2/(dim[0]*dim[1]),yerr=errors*volume*6*dim[3]**2/(dim[0]*dim[1]),ecolor='r',fmt=plot_fmt,capsize=1,label=name)
+        print(name,y_mean[-1]*volume*6*dim[3]**2/(dim[0]*dim[1]))
     if FS: 
         plt.title(r'Integral of difference between twist and no-twist wilson action. Averaged over set of jackknife data paired with FS reweighting.')
     if TITLE: 
@@ -161,7 +160,7 @@ def create_integral_figure_jackknife(notwist,twist_list,dim,mean=True,plot_fmt='
     plt.ylabel(r'$\alpha_{o-o}/T^3$')
     if fig_text: plt.figtext(0.1,-0.01,fig_text,fontstyle="italic")
     if len(twist_list) != 1: plt.legend()
-
+    
     #plt.legend()
     plt.savefig('./output.svg',dpi=600, bbox_inches = "tight") 
 

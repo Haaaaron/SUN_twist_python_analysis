@@ -8,7 +8,7 @@ import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from scipy.optimize import curve_fit
-FIG_SIZE=(10,20)
+FIG_SIZE=(15,20)
 plt.rcParams.update({'font.size': 11})
 def polar_plot(complex_values,index,title=None):
     magnitude = np.abs(complex_values)
@@ -56,7 +56,7 @@ def surface_in_3d(df):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     
-def animate_surface_in_3d(frames, volume, output_file="./videos/surface_animation.mp4", fps=10, bitrate=1800):
+def animate_surface_in_3d(frames, volume, output_file="../videos/surface_animation.mp4", fps=10, bitrate=1800):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
 
@@ -100,7 +100,6 @@ def plot_fourier_profile(n_2, f_n, volume, errors=None, beta=100, fit_range=4, s
     ax = fig.add_subplot(111)
     n_2 = np.array(n_2[1:])
     f_n = np.array(f_n[1:])
-    print(n_2)
     # %matplotlib widget
     # surface_in_3d(fourier_profile[0])
     ax.set_xlabel(r"$n$")
@@ -108,13 +107,16 @@ def plot_fourier_profile(n_2, f_n, volume, errors=None, beta=100, fit_range=4, s
     ax.set_title(r"Fourier profile V={}, beta={}, smear={}".format(volume, beta,smearing))
     y_data = (f_n * n_2 * np.pi**2 * 4) / 36
     ax.errorbar(n_2, y_data, yerr=errors[1:], fmt='o')
+    fig.subplots_adjust(bottom=0.2)
     coeff, cov = curve_fit(linear_func, n_2[:fit_range], y_data[:fit_range])
     a, b = coeff
     # y = exponential_func(n_2,a,b,c)   
     y = linear_func(n_2[:fit_range], a, b)               
     # plt.plot(n_2,1/(f_n**2*n_2*4*np.pi**2/6**2),"o")
     plt.plot(n_2[:fit_range], y, "-")
-    print(1 / linear_func(0, a, b))
+    # Create an external text box for the legend text
+    legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.3g}".format(1 / linear_func(0, a, b))
+    plt.gcf().text(0.15, 0.05, legend_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
     # ax.savefig("./fourier_profile_plots/{}_{}_{}_{}-{}.svg".format(volume[0], volume[1], volume[2], volume[3], beta))
     plt.show()
     
@@ -123,7 +125,6 @@ def plot_fourier_profile_exponential_fit(n_2, f_n, volume, errors=None, beta=100
     ax = fig.add_subplot(111)
     n_2 = np.array(n_2[1:])
     f_n = np.array(f_n[1:])
-    print(n_2)
     # %matplotlib widget
     # surface_in_3d(fourier_profile[0])
     ax.set_xlabel(r"$n$")
@@ -131,12 +132,15 @@ def plot_fourier_profile_exponential_fit(n_2, f_n, volume, errors=None, beta=100
     ax.set_title(r"Fourier profile V={}, beta={}, smear={}".format(volume, beta,smearing))
     y_data = (f_n * n_2 * np.pi**2 * 4) / 36
     ax.errorbar(n_2, y_data, yerr=errors[1:], fmt='o')
+    fig.subplots_adjust(bottom=0.2)
     coeff, cov = curve_fit(exponential_func, n_2, y_data)
     a, b, c = coeff
     y = exponential_func(n_2,a,b,c)   
     #y = linear_func(n_2[:fit_range], a, b)               
     # plt.plot(n_2,1/(f_n**2*n_2*4*np.pi**2/6**2),"o")
     plt.plot(n_2, y, "-")
-    print(1 / exponential_func(0, a, b,c))
+    legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.3g}".format(1 / exponential_func(0, a, b,c))
+    plt.gcf().text(0.15, 0.05, legend_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
+
     # ax.savefig("./fourier_profile_plots/{}_{}_{}_{}-{}.svg".format(volume[0], volume[1], volume[2], volume[3], beta))
     plt.show()

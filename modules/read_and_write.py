@@ -37,7 +37,6 @@ def load_data_file_complex(file, data_line):
     if (data[1][-1] == "sum"):
         data = pd.DataFrame(data[1:],columns=data[0]+["sum"])
     else:
-        print(data[0])
         data = pd.DataFrame(data[1:],columns=data[0])
     name = beta + " " + twist_c
     return name,data
@@ -121,7 +120,6 @@ def read_surface_data(file_path, file_name="surface_smooth"):
         
         if idx == 0:
             volume = np.array(line.split(" ")[1:]).astype(int)
-            print(volume)
         # Check if the line starts with 'volume:'
         if line.startswith('volume:'):
             # If header is found and data_start_index is set (indicating previous dataframe section),

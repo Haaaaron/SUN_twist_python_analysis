@@ -18,6 +18,13 @@ This collection of methods and analysis tools is in no means a consice package a
 | fsh (included) |
 | aa (included) |
 
+Dependencies can be installed in python env with
+
+    pip install -r requirements.txt
+
+Local modules can be installed in python env with 
+
+    pip install -e .
 ## Notebooks
 
 Most of the data manipulation is done in python notebooks where the custom data format is loaded into a notebook from the /data folder. After this the data is post processed and the outputted by various plots. 

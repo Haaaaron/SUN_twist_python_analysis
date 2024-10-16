@@ -1,6 +1,17 @@
 import numpy as np
 import pandas as pd
 import subprocess
+from IPython.display import Markdown, display
+
+
+def display_markdown_title(title_info):
+    title_info = title_info.split("/")
+    group = title_info[3].split('-')[0][2]
+    volume = title_info[3].split('-')[1:]
+    temp = title_info[4].split('-')[1]
+    twist_coeff = title_info[4].split('-')[3]
+    title_markdown = r"# $\text{{SU}}({})$, $V$ = {}, $\beta=$ {}, twist coeff $=$ {}".format(group, volume, temp, twist_coeff)
+    display(Markdown(title_markdown))
 
 def select_subset(data,x,y,stride=1):
     #Select subset of simulations in plaquette data
@@ -48,7 +59,7 @@ def compute_with_aa_jackknife(data,column,bins,only_sum=True,thermalization=1000
         error_dict[name] = (error_data[0].split()[1:3],empty_array)
     return error_dict
 
-def compute_with_aa_jackknife_fourier(fourier_profile,column,bins,only_sum=True,thermalization=1000):
+def compute_with_aa_jackknife_fourier(fourier_profile,bins,only_sum=True,thermalization=1000):
     error_dict = {}
     df_concat = fourier_profile[0].set_index("i").drop('h',axis=1)
 
@@ -57,7 +68,6 @@ def compute_with_aa_jackknife_fourier(fourier_profile,column,bins,only_sum=True,
         df_concat = pd.concat((df_concat,frame),axis=1)
     # for i,frame in enumerate(data):
     #print(datas.to_numpy()[thermalization:])
-    print(df_concat)
     fourier_profile_average = []
     errors = []
     np.savetxt("/home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt",df_concat.to_numpy().T[thermalization:])
@@ -68,7 +78,6 @@ def compute_with_aa_jackknife_fourier(fourier_profile,column,bins,only_sum=True,
         for line in jackknife_data:
             if len(line )!= 0:
                 empty_array.append(float(line.split()[1]))
-        print(error_data,jackknife_data)
         errors.append(float(error_data[0].split()[2]))
         fourier_profile_average.append(np.array(empty_array).mean())
     #error_dict[name] = (error_data[0].split()[1:3],empty_array)
