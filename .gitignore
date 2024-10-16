@@ -3,10 +3,9 @@ polyakov/
 current_output/
 output/
 modules/__pycache__
-output_sun3/
-output_sun4/
-output_measure_surface/
+data/
 modules/error_temp/
 modules/fsh_temp/
 fourier_profile_plots/
 videos/
+!videos/examples/
