@@ -8,7 +8,7 @@ import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from scipy.optimize import curve_fit
-FIG_SIZE=(15,20)
+FIG_SIZE=(10,15)
 plt.rcParams.update({'font.size': 11})
 def polar_plot(complex_values,index,title=None):
     magnitude = np.abs(complex_values)
@@ -95,52 +95,75 @@ def exponential_func(x, a, b, c):
 def linear_func(x,a,b):
     return -x*a + b
 
-def plot_fourier_profile(n_2, f_n, volume, errors=None, beta=100, fit_range=4, smearing=5):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    n_2 = np.array(n_2[1:])
-    f_n = np.array(f_n[1:])
-    # %matplotlib widget
-    # surface_in_3d(fourier_profile[0])
-    ax.set_xlabel(r"$n$")
-    ax.set_ylabel(r"$f_n^2 4 \pi^2 n^2/ N_t^2$")
-    ax.set_title(r"Fourier profile V={}, beta={}, smear={}".format(volume, beta,smearing))
-    y_data = (f_n * n_2 * np.pi**2 * 4) / 36
-    ax.errorbar(n_2, y_data, yerr=errors[1:], fmt='o')
-    fig.subplots_adjust(bottom=0.2)
-    coeff, cov = curve_fit(linear_func, n_2[:fit_range], y_data[:fit_range])
-    a, b = coeff
-    # y = exponential_func(n_2,a,b,c)   
-    y = linear_func(n_2[:fit_range], a, b)               
-    # plt.plot(n_2,1/(f_n**2*n_2*4*np.pi**2/6**2),"o")
-    plt.plot(n_2[:fit_range], y, "-")
-    # Create an external text box for the legend text
-    legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.3g}".format(1 / linear_func(0, a, b))
-    plt.gcf().text(0.15, 0.05, legend_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
-    # ax.savefig("./fourier_profile_plots/{}_{}_{}_{}-{}.svg".format(volume[0], volume[1], volume[2], volume[3], beta))
-    plt.show()
+def compute_fourier_profile(n_2, f_n, volume, errors=None, beta=None, fit_range=3, smearing=None, show_plot=True):
     
-def plot_fourier_profile_exponential_fit(n_2, f_n, volume, errors=None, beta=100, fit_range=4, smearing=5):
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
     n_2 = np.array(n_2[1:])
     f_n = np.array(f_n[1:])
-    # %matplotlib widget
-    # surface_in_3d(fourier_profile[0])
-    ax.set_xlabel(r"$n$")
-    ax.set_ylabel(r"$f_n^2 4 \pi^2 n^2/ N_t^2$")
-    ax.set_title(r"Fourier profile V={}, beta={}, smear={}".format(volume, beta,smearing))
     y_data = (f_n * n_2 * np.pi**2 * 4) / 36
-    ax.errorbar(n_2, y_data, yerr=errors[1:], fmt='o')
-    fig.subplots_adjust(bottom=0.2)
+    
+    # Fitting curve
+    coeff, cov = curve_fit(linear_func, n_2[:fit_range], y_data[:fit_range], sigma=errors[1:fit_range+1])
+    perr = np.sqrt(np.diag(cov))
+    
+    # Compute y graph and error bands
+    y = linear_func(n_2[:fit_range], *coeff)
+    y_low = linear_func(n_2[:fit_range], *(coeff - perr))
+    y_high = linear_func(n_2[:fit_range], *(coeff + perr))
+    
+    # Compute error and y_0
+    y_0 = linear_func(0, *coeff)
+    partials = np.array([0,1])
+    sigma_y0 = np.sqrt(partials.T @ cov @ partials)
+    
+    if show_plot:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(n_2, y_data, yerr=errors[1:], fmt='o')
+        
+        fig.subplots_adjust(bottom=0.2)
+        ax.set_xlabel(r"$n$")
+        ax.set_ylabel(r"$f_n^2 4 \pi^2 n^2/ N_t^2$")
+        ax.set_title(r"Fourier profile V={}, beta={}, smear={}".format(volume, beta, smearing))
+        ax.plot(n_2[:fit_range], y, "-")
+        ax.fill_between(n_2[:fit_range], y_low, y_high, color='gray', alpha=0.5)
+        legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.4g} $\pm$ {:.4g}".format(1/y_0, sigma_y0/y_0**2)
+        plt.gcf().text(0.15, 0.05, legend_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
+        plt.show()
+    return 1 / y_0, sigma_y0 / y_0**2
+    
+def compute_fourier_profile_exponential_fit(n_2, f_n, volume, errors=None, beta=None, smearing=None, show_plot=True):
+    n_2 = np.array(n_2[1:])
+    f_n = np.array(f_n[1:])
+    y_data = (f_n * n_2 * np.pi**2 * 4) / 36
+    
+    # Fitting curve
     coeff, cov = curve_fit(exponential_func, n_2, y_data)
-    a, b, c = coeff
-    y = exponential_func(n_2,a,b,c)   
-    #y = linear_func(n_2[:fit_range], a, b)               
-    # plt.plot(n_2,1/(f_n**2*n_2*4*np.pi**2/6**2),"o")
-    plt.plot(n_2, y, "-")
-    legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.3g}".format(1 / exponential_func(0, a, b,c))
-    plt.gcf().text(0.15, 0.05, legend_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
+    y = exponential_func(n_2, *coeff)
+    perr = np.sqrt(np.diag(cov))
+    
+    # Compute y graph and error bands
+    y = exponential_func(n_2, *coeff)
+    y_low = exponential_func(n_2, *(coeff - perr))
+    y_high = exponential_func(n_2, *(coeff + perr))
+    
+    # Compute error and y_0 at x_0 = 0
+    y_0 = exponential_func(0, *coeff)
+    a,b,c = coeff
+    partials = np.array([1,0,1])
+    sigma_y0 = np.sqrt(partials.T @ cov @ partials)
 
-    # ax.savefig("./fourier_profile_plots/{}_{}_{}_{}-{}.svg".format(volume[0], volume[1], volume[2], volume[3], beta))
-    plt.show()
+    if show_plot:
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.errorbar(n_2, y_data, yerr=errors[1:], fmt='o')
+        fig.subplots_adjust(bottom=0.2)
+        ax.set_xlabel(r"$n$")
+        ax.set_ylabel(r"$f_n^2 4 \pi^2 n^2/ N_t^2$")
+        ax.set_title(r"Fourier profile V={}, beta={}, smear={}".format(volume, beta, smearing))
+        ax.plot(n_2, y, "-")
+        ax.fill_between(n_2, y_low, y_high, color='gray', alpha=0.5)
+        legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.4g} $\pm$ {:.4g}".format(1/y_0, sigma_y0/y_0**2)
+        plt.gcf().text(0.15, 0.05, legend_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
+        plt.show()
+    
+    return 1 / y_0, sigma_y0 / y_0**2

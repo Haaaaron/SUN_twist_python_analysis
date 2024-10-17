@@ -154,4 +154,11 @@ def compute_covariance(twist,notwist,thermalization=50):
         cov = np.sum([(val[0]-mean_t)*(val[1]-mean_nt) for val in zip(t_sample,nt_sample)])/num_sample
         cov_dict[x[0]] = cov
     return cov_dict
+
+def print_df_as_markdown_fourier_modes(df):
+    for col in ["linear", "exponential"]:
+        df[col] = df[col].apply(lambda x: r"{:.4g} $\pm$ {:.4g}".format(x[0], x[1]))
+    df.rename(columns={"linear": r"Linear fit ($\sigma / T^3$)", "exponential": r"Exponential fit ($\sigma / T^3$)"}, inplace=True)
+    table = df.to_markdown(index=False)
+    display(Markdown(table))
     
