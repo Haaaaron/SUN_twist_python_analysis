@@ -1,0 +1,11 @@
+folder_names = ["../data/output-measure-surface/su4-36-36-48-6/beta-10.85-twist-1-fixed-wrap",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-12-twist-2",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-10.9-twist-2",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-10.85-twist-1",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-10.85-twist-2",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-10.85-twist-1-small-smear-range",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-10.85-twist-1-small-smear-range-copy-2",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-10.85-twist-1-big-smear-range",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-10.85-twist-1-fixed-wrap",
+                "../data/output-measure-surface/su4-60-60-86-6/beta-10.85-twist-1-fixed-wrap",
+                "../data/output-measure-surface/su4-44-44-64-6/beta-10.85-twist-1-wrap-fix",]

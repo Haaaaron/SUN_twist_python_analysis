@@ -61,17 +61,13 @@ def compute_with_aa_jackknife(data,column,bins,only_sum=True,thermalization=1000
 
 def compute_with_aa_jackknife_fourier(fourier_profile,bins,only_sum=True,thermalization=1000):
     error_dict = {}
-    df_concat = fourier_profile[0].set_index("i").drop('h',axis=1)
 
-    for i, frame in enumerate(fourier_profile[1:]):
-        frame = frame.drop('h', axis=1).set_index("i")
-        df_concat = pd.concat((df_concat,frame),axis=1)
     # for i,frame in enumerate(data):
     #print(datas.to_numpy()[thermalization:])
     fourier_profile_average = []
     errors = []
-    np.savetxt("/home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt",df_concat.to_numpy().T[thermalization:])
-    for i in range(1,len(df_concat.index)+1):
+    np.savetxt("/home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt",fourier_profile[thermalization:])
+    for i in range(1,np.shape(fourier_profile)[1]+1):
         error_data = subprocess.run([f"/home/haaaaron/bin/aa -d {i} -j {bins} /home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt"],text=True,shell=True,capture_output=True).stdout.split("\n")
         jackknife_data = subprocess.run([f"/home/haaaaron/bin/aa -d {i} -J {bins} /home/haaaaron/SUN_twist_python_analysis/modules/error_temp/temp_file.txt"],text=True,shell=True,capture_output=True).stdout.split("\n")        
         empty_array = []
@@ -81,7 +77,7 @@ def compute_with_aa_jackknife_fourier(fourier_profile,bins,only_sum=True,thermal
         errors.append(float(error_data[0].split()[2]))
         fourier_profile_average.append(np.array(empty_array).mean())
     #error_dict[name] = (error_data[0].split()[1:3],empty_array)
-    return (df_concat.index.to_list(),fourier_profile_average,errors)
+    return (fourier_profile_average,errors)
 
 def compute_with_aa_autocorrelation(data,thermalization=1000):
     autocorr_dict = {}
@@ -156,9 +152,7 @@ def compute_covariance(twist,notwist,thermalization=50):
     return cov_dict
 
 def print_df_as_markdown_fourier_modes(df):
-    for col in ["linear", "exponential"]:
-        df[col] = df[col].apply(lambda x: r"{:.4g} $\pm$ {:.4g}".format(x[0], x[1]))
-    df.rename(columns={"linear": r"Linear fit ($\sigma / T^3$)", "exponential": r"Exponential fit ($\sigma / T^3$)"}, inplace=True)
+    df["linear"] = df["linear"].apply(lambda x: r"{:.4g} $\pm$ {:.4g}".format(x[0], x[1]))
+    df.rename(columns={"linear": r"Linear fit ($\sigma / T^3$)"}, inplace=True)
     table = df.to_markdown(index=False)
     display(Markdown(table))
-    

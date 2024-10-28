@@ -104,7 +104,7 @@ def read_reweight_data(file_name):
 
 def read_surface_data(file_path, file_name="surface_smooth"):
     # Initialize an empty list to store all dataframes read from the file
-    all_dfs = []
+    all_arrays = []
     
     # Open the file and read line by line
     with open(file_path + "/" + file_name, 'r') as file:
@@ -125,20 +125,61 @@ def read_surface_data(file_path, file_name="surface_smooth"):
             # If header is found and data_start_index is set (indicating previous dataframe section),
             # extract the dataframe section from data_start_index to current index (exclusive)
             if header_found and data_start_index is not None:
-                df_section = lines[data_start_index:idx]
-                df = pd.read_csv(io.StringIO('\n'.join(df_section)), delim_whitespace=True, skiprows=1)
-                all_dfs.append(df)
+                array_section = lines[data_start_index:idx]
+                array = np.loadtxt(io.StringIO('\n'.join(array_section)), delimiter=' ', skiprows=3)
+                all_arrays.append(array)
             # Reset header_found and set new data_start_index
             header_found = True
             data_start_index = idx
         
     # After loop ends, extract the last dataframe section if any
     if header_found and data_start_index is not None:
-        df_section = lines[data_start_index:]
-        df = pd.read_csv(io.StringIO('\n'.join(df_section)), sep='\s+', skiprows=1)
-        all_dfs.append(df)
+        array_section = lines[data_start_index:]
+        array = np.loadtxt(io.StringIO('\n'.join(array_section)), delimiter=' ', skiprows=3)
+        all_arrays.append(array)
+    return volume,np.array(all_arrays)
+
+def read_fourier_profile(file_path, file_name="fourier_profile_*"):
+    # Initialize an empty list to store all dataframes read from the file
+    all_arrays = []
     
-    return volume,all_dfs
+    # Open the file and read line by line
+    with open(file_path + "/" + file_name, 'r') as file:
+        lines = file.readlines()
+        
+    # Initialize variables to track the start of each dataframe section
+    header_found = False
+    data_start_index = None
+    
+    # Iterate over each line in the file
+    for idx, line in enumerate(lines):
+        line = line.strip()
+        
+        if idx == 0:
+            volume = np.array(line.split(" ")[1:]).astype(int)
+        # Check if the line starts with 'volume:'
+        if line.startswith('volume:'):
+            # If header is found and data_start_index is set (indicating previous dataframe section),
+            # extract the dataframe section from data_start_index to current index (exclusive)
+            if header_found and data_start_index is not None:
+                array_section = lines[data_start_index:idx]
+                array = np.loadtxt(io.StringIO('\n'.join(array_section)), delimiter=' ', skiprows=3)
+                modes = array[:,0]
+                freq = array[:,1]
+                all_arrays.append(freq)
+            # Reset header_found and set new data_start_index
+            header_found = True
+            data_start_index = idx
+        
+    # After loop ends, extract the last dataframe section if any
+    if header_found and data_start_index is not None:
+        array_section = lines[data_start_index:]
+        array = np.loadtxt(io.StringIO('\n'.join(array_section)), delimiter=' ', skiprows=3)
+        modes = array[:,0]
+        freq = array[:,1]
+        all_arrays.append(freq)
+    
+    return volume,modes,np.array(all_arrays)
 
 if __name__ == "__main__":
     print(load_from_folder("./current_output/notwist","plaquette:","real"))
