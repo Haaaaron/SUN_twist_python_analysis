@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import subprocess
 from IPython.display import Markdown, display
+import os
 
 
 def display_markdown_title(title_info):
@@ -156,3 +157,27 @@ def print_df_as_markdown_fourier_modes(df):
     df.rename(columns={"linear": r"Linear fit ($\sigma / T^3$)"}, inplace=True)
     table = df.to_markdown(index=False)
     display(Markdown(table))
+    
+def list_all_folders(root_folder, has_attribute):
+    folder_list = []
+    for dirpath, dirnames, _ in os.walk(root_folder):
+        if has_attribute in dirpath:
+            for dirname in dirnames:
+                folder_list.append(os.path.join(dirpath, dirname))
+    folder_list.sort()
+    for i, folder in enumerate(folder_list):
+        print(folder,f", index: {i}")
+    return folder_list
+
+def write_surface_tension_dict(data_dict):
+    with open("./Results/Surface_tension_smeared/Surface_tension_smeared.txt", "w") as file:
+        for key, value in data_dict.items():
+            file.write(f"{key}: {value}\n")
+
+def read_surface_tension_dict(file_path):
+    data_dict = {}
+    with open(file_path, "r") as file:
+        for line in file:
+            key, value = line.strip().split(": ")
+            data_dict[key] = float(value)
+    return data_dict

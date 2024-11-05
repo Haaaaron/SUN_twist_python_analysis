@@ -3,6 +3,7 @@ import os
 import io
 import pandas as pd
 import numpy as np
+import ast
 
 def load_data_file_complex(file, data_line):
     f = open(file,'r')
@@ -34,6 +35,7 @@ def load_data_file_complex(file, data_line):
                     
                     complex_converted = [x.replace(' ','') for x in numbers]
                 data.append(complex_converted)
+    print(data)
     if (data[1][-1] == "sum"):
         data = pd.DataFrame(data[1:],columns=data[0]+["sum"])
     else:
@@ -76,6 +78,7 @@ def load_from_folder(folder,data_line,real_or_complex):
         
     for root,dirs,files in os.walk(folder):
         for name in files:
+            print(name)
             #print(os.path.join(root,name))
             name,data = load_func(os.path.join(root,name), data_line)
             #data = data['sum'].to_numpy()
@@ -180,6 +183,29 @@ def read_fourier_profile(file_path, file_name="fourier_profile_*"):
         all_arrays.append(freq)
     
     return volume,modes,np.array(all_arrays)
+
+def write_surface_tension_dict(data_dict):
+    with open("./Results/Surface_tension_smeared/Surface_tension_smeared.txt", "w") as file:
+        for key, value in data_dict.items():
+            file.write(f"{key}: {value}\n")
+
+def read_surface_tension_dict(file_path="./Results/Surface_tension_smeared/Surface_tension_smeared.txt"):
+    data_dict = {}
+    with open(file_path, "r") as file:
+        for line in file:
+            key, value = line.strip().split(": ", 1)
+            data_dict[key] = ast.literal_eval(value)
+    return data_dict
+
+def update_surface_tension_dict(new_data_dict, file_path="./Results/Surface_tension_smeared/Surface_tension_smeared.txt"):
+    # Load the existing data
+    existing_data_dict = read_surface_tension_dict(file_path)
+    
+    # Update the existing data with new data
+    existing_data_dict.update(new_data_dict)
+    print(existing_data_dict)
+    # Write the updated data back to the file
+    write_surface_tension_dict(existing_data_dict)
 
 if __name__ == "__main__":
     print(load_from_folder("./current_output/notwist","plaquette:","real"))

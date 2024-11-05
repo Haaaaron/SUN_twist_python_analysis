@@ -1,6 +1,7 @@
 import pandas as pd
 import ast
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
@@ -9,6 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from scipy.optimize import curve_fit
 from itertools import cycle
+
 FIG_SIZE=(10,15)
 plt.rcParams.update({'font.size': 11})
 def polar_plot(complex_values,index,title=None):
@@ -97,7 +99,7 @@ def linear_func(x,a,b):
 global_fig = None
 markers = cycle(['o', 's', '^', 'D', 'x'])
 
-def compute_fourier_profile(n_2, f_n, volume, errors=None, beta=None, fit_range=3, smearing=None, show_plot=True):
+def compute_fourier_profile(n_2, f_n, volume, errors=None, beta=None, twist=None, fit_range=3, smearing=None, show_plot=True):
     global global_fig,ax1,ax2
     n_2 = np.array(n_2[1:])
     f_n = np.array(f_n[1:])
@@ -125,7 +127,7 @@ def compute_fourier_profile(n_2, f_n, volume, errors=None, beta=None, fit_range=
         ax1.errorbar(n_2, y_data, yerr=errors[1:], fmt=fmt, label=f"smear = {smearing}", color=color, markersize=8,capsize=5)
         ax1.set_xlabel(r"$n$")
         ax1.set_ylabel(r"$f_n^2 4 \pi^2 n^2/ N_t^2$")
-        ax1.set_title(r"Fourier profile V={}, beta={}".format(volume, beta))
+        ax1.set_title(r"Fourier profile V={}, beta={}, twist={}".format(volume, beta, twist))
         legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.4g} $\pm$ {:.4g}, smear={}".format(1/y_0, sigma_y0/y_0**2, smearing)
         ax2.plot(n_2_fit,y, "-", label=legend_text, color=color)
         ax2.fill_between(n_2_fit, y_low, y_high, color=color, alpha=0.5)
@@ -175,3 +177,64 @@ def compute_fourier_profile_exponential_fit(n_2, f_n, volume, errors=None, beta=
         plt.show()
     
     return 1 / y_0, sigma_y0 / y_0**2
+
+def surface_tension_ratios(surface_tensions, twist_first, twist_second):
+    # Extract volume from one of the keys
+    sample_key = next(iter(surface_tensions))
+    volume = sample_key.split("-")[-4:]
+    grouped_surface_tensions = {}
+    for key, value in surface_tensions.items():
+        beta_value = key.split("-")[1]
+        twist = key.split("-")[3]
+        if beta_value not in grouped_surface_tensions:
+            grouped_surface_tensions[beta_value] = {}
+        grouped_surface_tensions[beta_value][twist] = value
+
+    num_plots = len(grouped_surface_tensions)
+    fig, axes = plt.subplots((num_plots + 1) // 2, 2, figsize=(14, 5 * ((num_plots + 1) // 2)))
+    
+    for idx, (beta_value, twists) in enumerate(grouped_surface_tensions.items()):
+        print(beta_value, twists)
+        
+        data_1 = twists[twist_first]
+        data_2 = twists[twist_second]
+        
+        # Create a matrix by dividing each element with each other
+        len_twist_first = len(data_1['linear'])
+        len_twist_second = len(data_2['linear'])
+        matrix = np.zeros(shape=(len_twist_first, len_twist_second))
+        data_2_linear = np.array(data_2['linear'])
+        data_1_linear = np.array(data_1['linear'])
+        matrix = data_2_linear[:, 0][:, np.newaxis] / data_1_linear[:, 0]
+        
+        # Compute error propagation
+        error_2 = data_2_linear[:, 1][:, np.newaxis]
+        error_1 = data_1_linear[:, 1]
+        error_matrix = matrix * np.sqrt((error_2 / data_2_linear[:, 0][:, np.newaxis])**2 + (error_1 / data_1_linear[:, 0])**2)
+        print(error_matrix)
+        N = 4
+        k = 2
+        # Create a heatmap
+        center_value = k * (N - k) / (N - 1)
+        vmin = center_value - 0.3
+        vmax = center_value + 0.3
+
+        ax = axes[idx // 2, idx % 2] if num_plots > 1 else axes
+        cax = ax.matshow(matrix, cmap='coolwarm', vmin=vmin, vmax=vmax)
+        for (i, j), val in np.ndenumerate(matrix):
+            ax.text(j, i, f'{val:.2f}\n±{error_matrix[i, j]:.2f}', ha='center', va='center', color='black')
+        #for (i, j), val in np.ndenumerate(matrix):
+        #    ax.text(j, i, f'{val:.4f}', ha='center', va='center', color='black')
+        fig.colorbar(cax, ax=ax)
+        ax.set_xticks(np.arange(len(data_1['smearing'])))
+        ax.set_xticklabels(data_1['smearing'])
+        ax.set_yticks(np.arange(len(data_2['smearing'])))
+        ax.set_yticklabels(data_2['smearing'])
+        ax.set_title(r'$\beta=$ {}'.format(beta_value))
+        ax.set_xlabel(f'Smearing Level, twist={twist_first}')
+        ax.set_ylabel(f'Smearing Level, twist={twist_second}')
+    fig.suptitle(f'Surface tension ratio, volume={volume}, sigma_2/sigma_1 = {k*(N-k)}/{N-1} = {k*(N-k)/(N-1):.2f}')
+    plt.tight_layout(pad=2.0)
+    plt.subplots_adjust(hspace=0.3, wspace=0)  # Adjust space between subplots
+    plt.savefig(f"./Results/tension_ratio/volume_{volume}_twist_{twist_first}_{twist_second}.pdf")
+    #plt.show()
