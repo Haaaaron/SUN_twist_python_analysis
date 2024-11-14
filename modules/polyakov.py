@@ -168,10 +168,6 @@ def animate_polar(data):
     cmap = plt.cm.jet
     index = np.array(list(map(int,data.columns)))
     norm = Normalize(vmin=index.min(), vmax=index.max())
-    #ax.set_rlabel_position(-22.5)
-    # handles = []
-    # for i, z_index in enumerate(index):
-    #     handles.append(ax.plot([], [], marker='o', color=cmap(norm(i)), label=f'z-index: {z_index}')[0])
         
     def update(frame):
         ax.clear()
@@ -180,20 +176,17 @@ def animate_polar(data):
         magnitudes = np.abs(complex_numbers)
         ax.set_ylim(0, max_magnitude)  # Set a fixed y-limit for better comparison across frames
         for i, (theta, r) in enumerate(zip(angles, magnitudes)):
-            ax.plot(theta, r, marker='o',color=cmap(norm(i)), label=f'z-index: {index[i]}')  # frame + 1 to skip the 'angle' column
-        #ax.set_rlabel_position(-22.5)
-        #sm = ScalarMappable(cmap=cmap, norm=norm)
-        #sm.set_array([])
+            ax.plot(theta, r, marker='o',color=cmap(norm(i)), label=f'z-index: {index[i]}')
         
-    #ax.legend(handles, [f'z-index: {z}' for z in index], loc='upper left', bbox_to_anchor=(1.05, 1), fontsize='small')
-    # Create the animation
     ani = FuncAnimation(fig, update, frames=len(data), interval=100, repeat=True)
+    
     # Save the animation
     Writer = animation.writers['ffmpeg']
     writer = Writer(fps=10, metadata=dict(artist='Me'), bitrate=1800)
-    ani.save('/home/haaaaron/SUN_twist_python_analysis/videos/polar_animation.mp4', writer=writer,dpi=100)
-
-    # Display the animation
+    ani.save('/home/haaaaron/SUN_twist_python_analysis/videos/polar_animation.mp4', writer=writer, dpi=100)
+    
+    # Close the figure to suppress plotting in Jupyter Notebook
+    plt.close(fig)
 
 if __name__ == "__main__":
     datas = {}

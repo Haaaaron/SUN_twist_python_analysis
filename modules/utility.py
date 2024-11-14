@@ -161,12 +161,15 @@ def print_df_as_markdown_fourier_modes(df):
 def list_all_folders(root_folder, has_attribute):
     folder_list = []
     for dirpath, dirnames, _ in os.walk(root_folder):
+        #print(dirpath,has_attribute in dirpath)
         if has_attribute in dirpath:
             for dirname in dirnames:
+                #print(dirpath,dirname)
                 folder_list.append(os.path.join(dirpath, dirname))
     folder_list.sort()
     for i, folder in enumerate(folder_list):
         print(folder,f", index: {i}")
+    #print(folder_list)
     return folder_list
 
 def write_surface_tension_dict(data_dict):

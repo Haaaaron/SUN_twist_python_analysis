@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import ast
 
-def load_data_file_complex(file, data_line):
+def load_data_file_complex(file, data_line, delim =","):
     f = open(file,'r')
     data = []
     beginRead = False
@@ -23,7 +23,7 @@ def load_data_file_complex(file, data_line):
         else:
             if line.startswith(data_line): 
                 line = line.split(':')[1]
-                numbers = [x for x in line.split(",")[:]]
+                numbers = [x for x in line.split(delim)[:-1]]
                 complex_converted = []
                 try:
                     for x in numbers:
@@ -35,15 +35,18 @@ def load_data_file_complex(file, data_line):
                     
                     complex_converted = [x.replace(' ','') for x in numbers]
                 data.append(complex_converted)
-    print(data)
+    #print(data)
     if (data[1][-1] == "sum"):
-        data = pd.DataFrame(data[1:],columns=data[0]+["sum"])
+        #data = pd.DataFrame(data[1:],columns=data[0]+["sum"])
+        data = np.array(data[1:])
     else:
-        data = pd.DataFrame(data[1:],columns=data[0])
+        #data = pd.DataFrame(data[1:],columns=data[0])
+        data = np.array(data[1:])
     name = beta + " " + twist_c
+    print(name)
     return name,data
 
-def load_data_file_real(file, data_line):
+def load_data_file_real(file, data_line, delim):
     f = open(file,'r')
     data = []
     beginRead = False
@@ -58,37 +61,46 @@ def load_data_file_real(file, data_line):
                 beginRead = True
         elif line.startswith('MEASURE end'):
             beginRead = False
-        else:
-            if line.startswith(data_line):
-                
-                line = line.split(':')[1]
-                #print(line.split())
-                data.append(line.split())
+        elif line.startswith(data_line):
+            line = line.split(':')[1]
+            #print(line.split())
+            line_data = line.split(delim)
+            if line_data[-1] == " sum\n" or line_data[-1] == "sum":
+                continue
+            elif len(line_data) == 1:
+                data.append(float(line_data[0]))
+            else:
+                data.append(np.array(line_data, dtype=float))
 
-    data = pd.DataFrame(data[1:],columns=data[0],dtype=np.float32)
+    #data = pd.DataFrame(data[1:],columns=data[0],dtype=np.float32)
+    data = np.array(data[1:])
     name = beta + " " + twist_c
+    print(name)
     return name,data
 
-def load_from_folder(folder,data_line,real_or_complex):
+def load_from_folder(folder,data_line,real_or_complex,delim=None):
     data_per_file = {}
     if real_or_complex == "real":
         load_func = load_data_file_real
     else:
+        delim = ","
         load_func = load_data_file_complex
         
     for root,dirs,files in os.walk(folder):
         for name in files:
             print(name)
             #print(os.path.join(root,name))
-            name,data = load_func(os.path.join(root,name), data_line)
-            #data = data['sum'].to_numpy()
-            #columns = list(data.columns.values)
-            #columns = columns[-len(columns)//2:] + columns[:-len(columns)//2]
-            #data = data.reindex(columns=columns)
-            #data = data[50:].mean()
-            #data = data[50:]
-            #print(data)
-            data_per_file[name] = data
+            if ("out.txt" in name) or  ("suN_" in name):
+                print(name)
+                name,data = load_func(os.path.join(root,name), data_line, delim)
+                #data = data['sum'].to_numpy()
+                #columns = list(data.columns.values)
+                #columns = columns[-len(columns)//2:] + columns[:-len(columns)//2]
+                #data = data.reindex(columns=columns)
+                #data = data[50:].mean()
+                #data = data[50:]
+                #print(data)
+                data_per_file[name] = data
     #print(data_per_file['5.081616161616162 0'])
     myKeys = list(data_per_file.keys())
     myKeys.sort()
@@ -184,8 +196,8 @@ def read_fourier_profile(file_path, file_name="fourier_profile_*"):
     
     return volume,modes,np.array(all_arrays)
 
-def write_surface_tension_dict(data_dict):
-    with open("./Results/Surface_tension_smeared/Surface_tension_smeared.txt", "w") as file:
+def write_surface_tension_dict(data_dict,file_path="./Results/Surface_tension_smeared/Surface_tension_smeared.txt"):
+    with open(file_path, "w") as file:
         for key, value in data_dict.items():
             file.write(f"{key}: {value}\n")
 
