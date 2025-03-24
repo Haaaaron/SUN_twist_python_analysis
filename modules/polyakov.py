@@ -162,23 +162,23 @@ def create_figure_real_imag(datas,cols=4, mean = True, title=""):
     #plt.show()
     plt.savefig("./output_polyakov.svg")
     
-def animate_polar(data):
+def animate_polar(data, frame_step=10):
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-    max_magnitude = np.abs(data.values).max()
+    max_magnitude = np.abs(data).max()
     cmap = plt.cm.jet
-    index = np.array(list(map(int,data.columns)))
+    index = np.arange(len(data))
     norm = Normalize(vmin=index.min(), vmax=index.max())
         
     def update(frame):
         ax.clear()
-        complex_numbers = data.iloc[frame, :]
+        complex_numbers = data[frame, :]
         angles = np.angle(complex_numbers)
         magnitudes = np.abs(complex_numbers)
         ax.set_ylim(0, max_magnitude)  # Set a fixed y-limit for better comparison across frames
         for i, (theta, r) in enumerate(zip(angles, magnitudes)):
-            ax.plot(theta, r, marker='o',color=cmap(norm(i)), label=f'z-index: {index[i]}')
+            ax.plot(theta, r, marker='o', color=cmap(norm(i)), label=f'z-index: {index[i]}')
         
-    ani = FuncAnimation(fig, update, frames=len(data), interval=100, repeat=True)
+    ani = FuncAnimation(fig, update, frames=range(0, len(data), frame_step), interval=100, repeat=True)
     
     # Save the animation
     Writer = animation.writers['ffmpeg']

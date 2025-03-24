@@ -1,0 +1,8 @@
+data_path_surface = "../data/output-measure-surface/"
+data_path_surface_abs = "../data/output-measure-surface-abs/"
+data_path_surface_z_smear = "../data/output-measure-surface-z-smear/"
+data_path_su8 = "../data/output-su8/"
+data_path_su6 = "../data/output-su6/"
+data_path_su4 = "../data/output-su4/"
+data_path_su3 = "../data/output-su3/"
+data_path_su6_reweight = "../data/output-su6-reweighted"

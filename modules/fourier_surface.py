@@ -35,35 +35,59 @@ def polar_plot(complex_values,index,title=None):
     plt.legend(loc='upper left', bbox_to_anchor=(1.1, 1.1))
     plt.show()
     
-def surface_in_3d(surface):
-
+def surface_in_3d(surface, artistic=False,extra=None):
     # Create meshgrid for x and y values
     x = np.unique(surface[:, 0])
     y = np.unique(surface[:, 1])
     
     z = surface[:, 2].reshape(len(y), len(x))
-    x,y = np.meshgrid(x,y)
+    x, y = np.meshgrid(x, y)
 
     # Create a 3D plot
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(12, 10))
     ax = fig.add_subplot(111, projection='3d')
-    ax.set_zlim(0,84)
+    z_min, z_max = z.min(), z.max()
+    ax.set_zlim(z_min - 20, z_max + 20)
 
-    # Plot the surface
-    ax.plot_surface(x, y, z, cmap='viridis')
+    # Plot the surface with artistic style
+    surf = ax.plot_surface(x, y, z, cmap='YlGn', edgecolor='none', alpha=0.8)
 
-    # Set labels
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    
+    # Plot contours
+    #ax.contour(x, y, z, zdir='z', offset=z_min - 20, cmap='magma')
+    if artistic:
+
+        if extra:
+            z_1 = extra[0][:, 2].reshape(len(y), len(x))
+            surf = ax.plot_surface(x, y, z_1-10, cmap='bone', edgecolor='none', alpha=0.8)
+            z_2 = extra[1][:, 2].reshape(len(y), len(x))
+            surf = ax.plot_surface(x, y, z_2-20, cmap='YlGnBu', edgecolor='none', alpha=0.8) 
+        else:
+            surf = ax.plot_surface(x, y, z-10, cmap='bone', edgecolor='none', alpha=0.8)
+            surf = ax.plot_surface(x, y, z-20, cmap='YlGnBu', edgecolor='none', alpha=0.8) 
+
+        ax.set_axis_off()
+
+    else:
+        cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5)
+        cbar.set_label('Z Value')
+
+        # Set labels with artistic font
+        ax.set_xlabel('X', fontsize=15, fontweight='bold', color='darkblue')
+        ax.set_ylabel('Y', fontsize=15, fontweight='bold', color='darkgreen')
+        ax.set_zlabel('Z', fontsize=15, fontweight='bold', color='darkred')
+
+        # Set background color
+        ax.set_facecolor('lightgrey')
+        
+
+    plt.show()
 def animate_surface_in_3d(frames, volume, output_file="../videos/surface_animation.mp4", fps=10, bitrate=1800):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
 
     def update_surface(frame):
         ax.clear()
-        ax.set_zlim(0,volume[2])
+        ax.set_zlim(-20,volume[2]+20)
         # Extract data for the current frame
         surface = frames[frame]
         x = np.unique(surface[:, 0])
@@ -97,7 +121,7 @@ def linear_func(x,a,b):
     return -x*a + b
 
 global_fig = None
-markers = cycle(['o', 's', '^', 'D', 'x'])
+markers = cycle(['o', 's', '^', 'D', 'x', 'v', 'p', '*', 'h', '+', '1', '2', '3', '4', '|', '_'])
 
 def compute_fourier_profile(n_2, f_n, volume, errors=None, beta=None, twist=None, fit_range=3, smearing=None, show_plot=True):
     global global_fig,ax1,ax2
@@ -124,14 +148,14 @@ def compute_fourier_profile(n_2, f_n, volume, errors=None, beta=None, twist=None
     if show_plot:
         fmt = next(markers)
         color = ax1._get_lines.get_next_color()
-        ax1.errorbar(n_2, y_data, yerr=errors[1:], fmt=fmt, label=f"smear = {smearing}", color=color, markersize=8,capsize=5)
+        ax1.errorbar(n_2, y_data, yerr=errors[1:], fmt="-"+fmt, label=f"smear = {smearing}", color=color, markersize=3,capsize=5)
         ax1.set_xlabel(r"$n$")
         ax1.set_ylabel(r"$f_n^2 4 \pi^2 n^2/ N_t^2$")
         ax1.set_title(r"Fourier profile V={}, beta={}, twist={}".format(volume, beta, twist))
         legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.4g} $\pm$ {:.4g}, smear={}".format(1/y_0, sigma_y0/y_0**2, smearing)
         ax2.plot(n_2_fit,y, "-", label=legend_text, color=color)
         ax2.fill_between(n_2_fit, y_low, y_high, color=color, alpha=0.5)
-        ax2.errorbar(n_2[:fit_range], y_data[:fit_range], yerr=errors[1:fit_range+1], fmt=fmt, color=color, markersize=6, capsize=5)
+        ax2.errorbar(n_2[:fit_range], y_data[:fit_range], yerr=errors[1:fit_range+1], fmt=fmt, color=color, markersize=3, capsize=5)
         ax2.set_xlabel(r"$n$")
         ax2.set_ylabel(r"Fit and Error Bands")
         
@@ -141,7 +165,8 @@ def compute_fourier_profile(n_2, f_n, volume, errors=None, beta=None, twist=None
         plt.tight_layout()
     return 1 / y_0, sigma_y0 / y_0**2
     
-def compute_fourier_profile_exponential_fit(n_2, f_n, volume, errors=None, beta=None, smearing=None, show_plot=True):
+def compute_fourier_profile_exponential_fit(n_2, f_n, volume, errors=None, beta=None, twist=None, smearing=None, show_plot=True):
+    global global_fig, ax1, ax2
     n_2 = np.array(n_2[1:])
     f_n = np.array(f_n[1:])
     y_data = (f_n * n_2 * np.pi**2 * 4) / 36
@@ -158,26 +183,43 @@ def compute_fourier_profile_exponential_fit(n_2, f_n, volume, errors=None, beta=
     
     # Compute error and y_0 at x_0 = 0
     y_0 = exponential_func(0, *coeff)
-    a,b,c = coeff
-    partials = np.array([1,0,1])
+    a, b, c = coeff
+    partials = np.array([1, 0, 1])
     sigma_y0 = np.sqrt(partials.T @ cov @ partials)
-
+    
+    if global_fig is None:
+        global_fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+    
     if show_plot:
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.errorbar(n_2, y_data, yerr=errors[1:], fmt='o')
-        fig.subplots_adjust(bottom=0.2)
-        ax.set_xlabel(r"$n$")
-        ax.set_ylabel(r"$f_n^2 4 \pi^2 n^2/ N_t^2$")
-        ax.set_title(r"Fourier profile V={}, beta={}, smear={}".format(volume, beta, smearing))
-        ax.plot(n_2, y, "-")
-        ax.fill_between(n_2, y_low, y_high, color='gray', alpha=0.5)
-        legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.4g} $\pm$ {:.4g}".format(1/y_0, sigma_y0/y_0**2)
-        plt.gcf().text(0.15, 0.05, legend_text, fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
-        plt.show()
+        fmt = next(markers)
+        color = ax1._get_lines.get_next_color()
+        ax1.errorbar(n_2, y_data, yerr=errors[1:], fmt="-"+fmt, label=f"smear = {smearing}", color=color, markersize=3, capsize=5)
+        ax1.set_xlabel(r"$n$")
+        ax1.set_ylabel(r"$f_n^2 4 \pi^2 n^2/ N_t^2$")
+        ax1.set_title(r"Fourier profile V={}, beta={}, twist={}".format(volume, beta, twist))
+        legend_text = r"$N_t^2 / f_0^2 4 \pi^2  = \sigma / T^3=$ {:.4g} $\pm$ {:.4g}, smear={}".format(1/y_0, sigma_y0/y_0**2, smearing)
+        ax2.plot(n_2, y, "-", label=legend_text, color=color)
+        ax2.fill_between(n_2, y_low, y_high, color=color, alpha=0.5)
+        ax2.errorbar(n_2, y_data, yerr=errors[1:], fmt=fmt, color=color, markersize=3, capsize=5)
+        ax2.set_xlabel(r"$n$")
+        ax2.set_ylabel(r"Fit and Error Bands")
+        
+        global_fig.subplots_adjust(bottom=0.2)
+        ax2.legend()
+        ax1.legend()
+        plt.tight_layout()
     
     return 1 / y_0, sigma_y0 / y_0**2
 
+def save_global_figure(volume, beta,twist, fit_type, z_smear):
+    global global_fig
+    if global_fig is not None:
+        filename = f"/home/haaaaron/SUN_twist_python_analysis/plots/fourier_profile/volume_{volume[0]}-{volume[1]}-{volume[2]}-{volume[3]}_beta_{beta}_twist_{twist}_fit_{fit_type}_zsmear_{z_smear}.pdf"
+        global_fig.savefig(filename)
+        print(f"Figure saved as {filename}")
+    else:
+        print("No global figure to save.")
+        
 def surface_tension_ratios(surface_tensions, twist_first, twist_second):
     # Extract volume from one of the keys
     sample_key = next(iter(surface_tensions))
@@ -191,7 +233,15 @@ def surface_tension_ratios(surface_tensions, twist_first, twist_second):
         grouped_surface_tensions[beta_value][twist] = value
 
     num_plots = len(grouped_surface_tensions)
-    fig, axes = plt.subplots((num_plots + 1) // 2, 2, figsize=(14, 5 * ((num_plots + 1) // 2)))
+    print(num_plots)
+    if num_plots == 1:
+        fig, axes = plt.subplots(1, 1, figsize=(9,9))
+        axes = [axes]  # Make it iterable
+    elif num_plots == 2:
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+        axes = np.array([axes])  # Make it 2D
+    else:
+        fig, axes = plt.subplots(2, (num_plots + 1) // 2, figsize=(14, 5 * ((num_plots + 1) // 2)))
     
     for idx, (beta_value, twists) in enumerate(grouped_surface_tensions.items()):
         print(beta_value, twists)
@@ -218,8 +268,7 @@ def surface_tension_ratios(surface_tensions, twist_first, twist_second):
         center_value = k * (N - k) / (N - 1)
         vmin = center_value - 0.3
         vmax = center_value + 0.3
-
-        ax = axes[idx // 2, idx % 2] if num_plots > 1 else axes
+        ax = axes[idx // 2, idx % 2] if num_plots > 1 else axes[0]
         cax = ax.matshow(matrix, cmap='coolwarm', vmin=vmin, vmax=vmax)
         for (i, j), val in np.ndenumerate(matrix):
             ax.text(j, i, f'{val:.2f}\n±{error_matrix[i, j]:.2f}', ha='center', va='center', color='black')

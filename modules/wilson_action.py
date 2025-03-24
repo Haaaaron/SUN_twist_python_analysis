@@ -3,36 +3,33 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import seaborn as sns
 from scipy import integrate
-FIG_SIZE=(7,5)
+FIG_SIZE=(4,4)
 #standard font 11
 plt.rcParams.update({'font.size': 11})
 
-def create_average_action_figure(notwist,name_1,twist,name_2,errors_1=None,errors_2=None,thermalization=50):
+def create_average_action_figure(data_list, thermalization=1000):
     plt.figure(figsize=FIG_SIZE)
-    #data = [[notwist,name_1,errors_1],[twist,name_2,errors_2]]
-    data = [[notwist,name_1,errors_1]]
-
-    for i,(datas,name,errors) in enumerate(data):
+    
+    for data in data_list:
+        datas, name, errors = data
         average_datas = {}
         for simulation in datas:
-            average_sum = datas[simulation]['sum'].to_numpy().astype(float)
+            average_sum = datas[simulation]
             average_datas[simulation] = average_sum[thermalization:].mean()
-        data[i][0] = average_datas
-    for (datas,name,errors) in data:
-        x = [float(x.split()[0]) for x in list(datas.keys())]
-        y = list(datas.values())
-        if (errors == None):
-            plt.plot(x,y,'.--',label=name)
+        
+        x = [float(x.split()[0]) for x in list(average_datas.keys())]
+        y = list(average_datas.values())
+        
+        if errors is None:
+            plt.plot(x, y, '.--', label=name)
         else:
-            error = []
-            for key in datas.keys():
-                error.append(float(errors[key]["error"].iloc[-1]))
-            plt.errorbar(x,y,yerr=error,fmt='.--',ecolor="r",label=name)
-        #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
+            error = [float(errors[key]["error"].iloc[-1]) for key in average_datas.keys()]
+            plt.errorbar(x, y, yerr=error, fmt='.--', ecolor="r", label=name)
+    
     plt.xlabel(r'$\beta$')
     plt.ylabel(r'$\langle$ S $\rangle / (6\cdot V \cdot\beta)$')
-    #plt.legend()
-    plt.savefig('./output.svg') 
+    plt.legend()
+    plt.savefig('./output.svg')
     #plt.show()
     
 def create_average_action_figure_difference(notwist,name_1,twist,name_2,errors_1=None,errors_2=None,covariance=None,thermalization=50):
@@ -43,8 +40,8 @@ def create_average_action_figure_difference(notwist,name_1,twist,name_2,errors_1
     for i,(datas,name,errors) in enumerate(data):
         average_datas = {}
         for simulation in datas:
-            average_sum = datas[simulation]['sum'].to_numpy().astype(float)
-            average_datas[simulation] = average_sum[thermalization:].mean()
+            average_sum = datas[simulation]
+            average_datas[simulation] = datas[simulation][thermalization:].mean()
         data[i][0] = average_datas
     x = [float(x.split()[0]) for x in list(data[0][0].keys())]
     y = np.array(list(data[1][0].values())) - np.array(list(data[0][0].values()))
@@ -61,110 +58,153 @@ def create_average_action_figure_difference(notwist,name_1,twist,name_2,errors_1
     plt.savefig('./output.svg') 
     #plt.show()
     
-def create_average_action_figure_jackknife(notwist,name_1,twist,name_2,error=True,FS=False,TITLE=False,plot_fmt="-",fig_text=None):
-    data = [[notwist,name_1],[twist,name_2]]
+def create_average_action_figure_jackknife(twist_list, error=True, FS=False, TITLE=False, plot_fmt="-", fig_text=None):
     plt.figure(figsize=FIG_SIZE)
-    #plt.figure()
-
-    for (datas,name) in data:
-        if (error == False):
-            # for i,y in enumerate(datas[1]):
-            #     plt.plot(datas[0],y,linestyle="dotted",label=f"{i}")
-            #     #break
-            plt.plot(datas[0],np.mean(datas[1],axis=0),label=name)
+    
+    for twist, name in twist_list:
+        if error == False:
+            plt.plot(twist[0], np.mean(twist[1], axis=0), label=name)
         else:
-            mean = np.mean(datas[1],axis=0)
-            M = len(datas[1])
-            errors= np.zeros(len(datas[0]))
-            for block in datas[1]:
+            print(name)
+            mean = np.mean(twist[1], axis=0)
+            M = len(twist[1])
+            errors = np.zeros(len(twist[0]))
+            for block in twist[1]:
                 errors += (block - mean)**2
-            errors = np.sqrt((M-1)/M*errors)
-            plt.errorbar(datas[0],mean,yerr=errors,ecolor="r",fmt='-',label=name)
-        #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
+            errors = np.sqrt((M-1)/M * errors)
+            lower_bound = mean - errors
+            upper_bound = mean + errors
+            plt.plot(twist[0], mean, label=name)
+            plt.fill_between(twist[0], lower_bound, upper_bound, alpha=0.9)
+            plt.grid(True,alpha=0.5)
     if FS:
         plt.title(r'Wilson action total average with respect to $\beta$ produced with jackknife and FS reweighting')
     if TITLE:
         plt.title(r'Wilson action average with respect to $\beta$')
     plt.xlabel(r'$\beta$')
     plt.ylabel(r'$\langle$ S $\rangle / (6\cdot V \cdot\beta)$')
-    if fig_text: plt.figtext(0.1,-0.01,fig_text,fontstyle="italic")
+    if fig_text: plt.figtext(0.1, -0.01, fig_text, fontstyle="italic")
     plt.legend()
-    plt.savefig('./output.svg',dpi=600, bbox_inches = "tight") 
+    plt.savefig('./output.svg', dpi=600, bbox_inches="tight")
+    
+def create_average_action_figure_jackknife_derivative(twist_list, error=True, FS=False, TITLE=False, plot_fmt="-", fig_text=None):
+    plt.figure(figsize=FIG_SIZE)
+    
+    for twist, name in twist_list:
+        if error == False:
+            plt.plot(twist[0], np.mean(twist[1], axis=0), label=name)
+        else:
+            print(name)
+            mean = np.mean(twist[1], axis=0)
+            M = len(twist[1])
+            errors = np.zeros(len(twist[0]))
+            for block in twist[1]:
+                errors += (block - mean)**2
+            errors = np.sqrt((M-1)/M * errors)
+            
+            # Compute the derivative of twist[0] and mean
+            d_twist = np.gradient(twist[0])
+            d_mean = np.gradient(mean, twist[0])
+            
+            # Compute the propagated error for the derivative
+            d_errors = errors = np.sqrt((M-1)/M * errors)
+            
+            lower_bound = d_mean - d_errors
+            upper_bound = d_mean + d_errors
+            
+            plt.plot(twist[0], d_mean, label=name)
+            plt.fill_between(twist[0], lower_bound, upper_bound, alpha=0.9)
+            plt.grid(True, alpha=0.5)
+    
+    if FS:
+        plt.title(r'Wilson action total average with respect to $\beta$ produced with jackknife and FS reweighting')
+    if TITLE:
+        plt.title(r'Wilson action average with respect to $\beta$')
+    plt.xlabel(r'$\beta$')
+    plt.ylabel(r'$\langle$ S $\rangle / (6\cdot V \cdot\beta)$')
+    if fig_text: plt.figtext(0.1, -0.01, fig_text, fontstyle="italic")
+    plt.legend()
+    plt.savefig('./output.svg', dpi=600, bbox_inches="tight")
 
 
     
-def create_twist_notwist_difference_figure_jackknife(notwist,twist_list,jk=False,error=True,FS=False,TITLE=False,plot_fmt="-",fig_text=None):
+def create_twist_notwist_difference_figure_jackknife(notwist, twist_list, jk=False, error=True, FS=False, TITLE=False, plot_fmt="-", fig_text=None):
     plt.figure(figsize=FIG_SIZE)
-    for twist,name in twist_list:
-        if jk == True:
-            for i,(y_notwist,y_twist) in enumerate(zip(notwist[1],twist[1])):
-                plt.plot(notwist[0],y_twist-y_notwist,linestyle="dotted",label=f"{i}")
-        if error == True:
+    for twist, name in twist_list:
+        if error == False:
+            for i, (y_notwist, y_twist) in enumerate(zip(notwist[1], twist[1])):
+                plt.plot(notwist[0], y_twist - y_notwist, linestyle="dotted", label=f"{i}")
+        else:
             difference = twist[1] - notwist[1]
             M = len(notwist[0])
-            mean = np.mean(twist[1],axis=0)-np.mean(notwist[1],axis=0)
-            errors= np.zeros(len(notwist[0]))
+            mean = np.mean(twist[1], axis=0) - np.mean(notwist[1], axis=0)
+            errors = np.zeros(len(notwist[0]))
             for block in difference:
                 print(block[-1])
-                errors += (block - mean)**2
-            errors = np.sqrt((M-1)/M*errors)
+                errors += (block - mean) ** 2
+            errors = np.sqrt((M - 1) / M * errors)
             print(np.max(errors))
-            if len(twist_list) != 1: plt.errorbar(notwist[0],mean,yerr=errors,fmt='-',label=name)
-            else: plt.errorbar(notwist[0],mean,yerr=errors,ecolor='r',fmt='-',label=name)
-            #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
-    if FS:    
+            if len(twist_list) != 1:
+                plt.errorbar(notwist[0], mean, yerr=errors, fmt='-', label=name)
+            else:
+                plt.errorbar(notwist[0], mean, yerr=errors, ecolor='r', fmt='-', label=name)
+    if FS:
         plt.title(r'Wilson action difference between twist and notwist with respect to $\beta$ using jackknife and FS reweighting')
     if TITLE:
         plt.title(r'Wilson action difference between twist and notwist with respect to $\beta$')
     plt.xlabel(r'$\beta$')
     plt.ylabel(r'$\frac{1}{6\cdot V\cdot \beta}\langle S_{t} - S_{nt} \rangle$')
-    if len(twist_list) != 1: plt.legend()
-    if fig_text: plt.figtext(0.1,-0.01,fig_text,fontstyle="italic")
+    if len(twist_list) != 1:
+        plt.legend()
+    if fig_text:
+        plt.figtext(0.1, -0.01, fig_text, fontstyle="italic")
+    plt.grid(True, alpha=0.5)
     plt.tight_layout()
-    plt.savefig('./output.svg',dpi=600, bbox_inches = "tight") 
+    plt.savefig('./output.svg', dpi=600, bbox_inches="tight")
 
     
 def create_integral_figure_jackknife(notwist,twist_list,dim,mean=True,plot_fmt='-',fig_text=None,N=10,FS=False,TITLE=False):
     
     plt.figure(figsize=FIG_SIZE)
-    #print(twist[1])
-    for twist,name in twist_list:
+    for twist, name in twist_list:
         integrated_ys = []
-        for (y_notwist,y_twist) in zip(notwist[1],twist[1]):
-            x=notwist[0]
-            y = y_twist-y_notwist
-            #y_int = integrate.cumtrapz(y,x,initial=0)
-            y_int = integrate.cumulative_trapezoid(y,x,initial=0)
-
-            if mean:
-                integrated_ys.append(y_int)
-            else:
-                plt.plot(x,y_int,plot_fmt)
-            #y_int = integrate.simpson(y,x)
-        y_mean = np.mean(integrated_ys,axis=0)
-        errors= np.zeros(len(notwist[0]))
+        for (y_notwist, y_twist) in zip(notwist[1], twist[1]):
+            x = notwist[0]
+            y = y_twist - y_notwist
+            y_int = integrate.cumulative_trapezoid(y, x, initial=0)
+            integrated_ys.append(y_int)
+        
+        y_mean = np.mean(integrated_ys, axis=0)
+        errors = np.zeros(len(notwist[0]))
         for block in integrated_ys:
-            errors += (block - y_mean)**2
-        errors = np.sqrt((N-1)/N*errors)
+            errors += (block - y_mean) ** 2
+        errors = np.sqrt((N - 1) / N * errors)
+        
         if mean:
-            volume=dim[0]*dim[1]*dim[2]*dim[3]
-            if len(twist_list) != 1: plt.errorbar(x,y_mean*volume*6*dim[3]**2/(dim[0]*dim[1]),yerr=errors*volume*6*dim[3]**2/(dim[0]*dim[1]),fmt=plot_fmt,capsize=1,label=name)
-            else: plt.errorbar(x,y_mean*volume*6*dim[3]**2/(dim[0]*dim[1]),yerr=errors*volume*6*dim[3]**2/(dim[0]*dim[1]),ecolor='r',fmt=plot_fmt,capsize=1,label=name)
-        print(name,y_mean[-1]*volume*6*dim[3]**2/(dim[0]*dim[1]))
-    if FS: 
+            volume = dim[0] * dim[1] * dim[2] * dim[3]
+            y_mean_scaled = y_mean * volume * 6 * dim[3] ** 2 / (dim[0] * dim[1])
+            errors_scaled = errors * volume * 6 * dim[3] ** 2 / (dim[0] * dim[1])
+            plt.plot(x, y_mean_scaled, plot_fmt, label=name)
+            plt.fill_between(x, y_mean_scaled - errors_scaled, y_mean_scaled + errors_scaled, alpha=0.7)
+        
+        print(name, y_mean[-1] * volume * 6 * dim[3] ** 2 / (dim[0] * dim[1]))
+    
+    if FS:
         plt.title(r'Integral of difference between twist and no-twist wilson action. Averaged over set of jackknife data paired with FS reweighting.')
-    if TITLE: 
+    if TITLE:
         plt.title(r'Integral of difference between twist and no-twist wilson action')
-
+    
     plt.xlabel(r'$\beta$')
     plt.ylabel(r'$\alpha_{o-o}/T^3$')
-    if fig_text: plt.figtext(0.1,-0.01,fig_text,fontstyle="italic")
-    if len(twist_list) != 1: plt.legend()
+    if fig_text:
+        plt.figtext(0.1, -0.01, fig_text, fontstyle="italic")
+    if len(twist_list) != 1:
+        plt.legend()
     
-    #plt.legend()
-    plt.savefig('./output.svg',dpi=600, bbox_inches = "tight") 
+    plt.grid(True, alpha=0.5)
+    plt.savefig('./output.svg', dpi=600, bbox_inches='tight')
 
-def create_integral_figure_ratio(notwist,twist_list,dim,mean=True,plot_fmt='-',fig_text=None,N=10,FS=False,TITLE=False):
+def create_integral_figure_ratio(notwist,twist_list,start_temp,dim,mean=True,plot_fmt='-',fig_text=None,N=10,FS=False,TITLE=False):
     
     plt.figure(figsize=FIG_SIZE)
     #print(twist[1])
@@ -172,7 +212,7 @@ def create_integral_figure_ratio(notwist,twist_list,dim,mean=True,plot_fmt='-',f
     for twist,name in twist_list:
         integrated_ys = []
         for (y_notwist,y_twist) in zip(notwist[1],twist[1]):
-            x=notwist[0]
+            x=np.array(notwist[0])
             y = y_twist-y_notwist
             #y_int = integrate.cumtrapz(y,x,initial=0)
             y_int = integrate.cumulative_trapezoid(y,x,initial=0)
@@ -191,22 +231,26 @@ def create_integral_figure_ratio(notwist,twist_list,dim,mean=True,plot_fmt='-',f
     for block in ys_ratio:
         errors += (block - y_mean)**2
     errors = np.sqrt((N-1)/N*errors)
-    start = np.where(x==10.787)[0][0] 
-    beta_critical = 10.787 
+    print(x)
+    print(np.where(x==start_temp))
+    start = np.where(x==start_temp)[0][0] 
+    beta_critical = start_temp
     critical = convert_beta_to_T([beta_critical])[0]
     T = convert_beta_to_T(x[start:])
     #print(critical/T)
     print(y_mean[-1],errors[-1])
     if mean:
-        plt.errorbar(critical/T,y_mean[start:],yerr=errors[start:],ecolor='r',fmt=plot_fmt,capsize=1)
-    if FS: 
+        plt.errorbar(x[start:], y_mean[start:], yerr=errors[start:], ecolor='r', fmt=plot_fmt, capsize=1)
+    if FS:
         plt.title(r'Integral of difference between twist and no-twist wilson action. Averaged over set of jackknife data paired with FS reweighting.')
-    if TITLE: 
+    if TITLE:
         plt.title(r'Integral of difference between twist and no-twist wilson action')
-    plt.plot(critical/T,np.ones(len(T))*4/3,label=r'$\sigma_{k=2}/\sigma_1=4/3$')
+    # plt.plot(critical/T, np.ones(len(T)) * 4 / 3, label=r'$\sigma_{k=2}/\sigma_1=4/3$')
     plt.xlabel(r'$T/T_c$')
     plt.ylabel(r'$ \alpha_{z_2}/\alpha_{z_1} $')
-    if fig_text: plt.figtext(0.1,-0.01,fig_text,fontstyle="italic")
+    if fig_text:
+        plt.figtext(0.1, -0.01, fig_text, fontstyle="italic")
+    plt.grid(True, alpha=0.5)
 
     plt.legend()
     plt.savefig('./output.svg',dpi=600, bbox_inches = "tight") 
@@ -221,7 +265,7 @@ def create_z_index_heat_map(datas,cols=2,mean=False,series_range=(10000,-1)):
     position = range(1,total+1)
     fig = plt.figure(1,figsize=FIG_SIZE)
     for k,(name,data) in enumerate(datas.items()):
-        no_sum = data.drop(["sum"],axis=1)[series_range[0]:series_range[1]]
+        no_sum = data[:,:-2][series_range[0]:series_range[1]]
         ax = fig.add_subplot(rows,cols,position[k])
         #ax.imshow(datas[name], cmap ="RdYlBu",aspect='auto')
         #delta = no_sum.to_numpy().max()-no_sum.to_numpy().min()
@@ -229,15 +273,15 @@ def create_z_index_heat_map(datas,cols=2,mean=False,series_range=(10000,-1)):
         #print(list(data.columns.values))
         #print(no_sum)
         if mean:
-            ax.plot(no_sum.columns.values,no_sum.mean())
+            ax.plot(list(range(len(no_sum[0]))),no_sum.mean(axis=0))
         else:
-            sns.heatmap(no_sum,ax=ax)
+            sns.heatmap(abs(no_sum),ax=ax)
         ax.set_title(r"$\beta$={}".format(name.split()[0]))
         ax.set_xlabel(r"$x_3$-index")
     plt.tight_layout(pad=0.4, w_pad=3, h_pad=1.0)
-    
+    plt.show()
     #plt.xticks([float(x) for x in datas[0].head()[1:-1]])
-    plt.savefig('./output.svg') 
+    #plt.savefig('./output.svg') 
 
     
 def plot_action_series(datas,cols=4,series_range=(10000,-1)):

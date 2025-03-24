@@ -5,80 +5,103 @@ import pandas as pd
 import numpy as np
 import ast
 
-def load_data_file_complex(file, data_line, delim =","):
-    f = open(file,'r')
-    data = []
-    beginRead = False
-    beta = None
-    for line in f:
-        if not beginRead:
+def load_data_file_complex(file, data_line, delim =",", dim=1,column=None,skip_lines=2):
+    with open(file, 'r') as f:
+        data = []
+        beginRead = False
+        beta = None
+        for line in f:
+            ##if not beginRead:
             if line.startswith('beta'):
                 beta = str(line.split()[1])
-            if line.startswith('twist_coeff'):
+            elif line.startswith('twist_coeff') or line.startswith('twist coeff'):
                 twist_c = str(line.split()[1])
-            if line.startswith('MEASURE start'):
-                beginRead = True
-        elif line.startswith('MEASURE end'):
-            beginRead = False
-        else:
-            if line.startswith(data_line): 
-                line = line.split(':')[1]
-                numbers = [x for x in line.split(delim)[:-1]]
+            #     if line.startswith('MEASURE start'):
+            #         beginRead = True
+            # elif line.startswith('MEASURE end'):
+            #     beginRead = False
+            # else:
+            elif line.startswith(data_line): 
+                if skip_lines != 0 or ('sum' in line):
+                    skip_lines -= 1
+                    continue
+                line = line.split(':')[1].replace('\n','')
                 complex_converted = []
-                try:
-                    for x in numbers:
-                        num = x.split()
-                        complex_converted.append(complex(float(num[0]),float(num[1])))
-                        #complex(num[0])
-                except:
-                    numbers[-1] = numbers[-1].replace('\n','')
-                    
-                    complex_converted = [x.replace(' ','') for x in numbers]
+                #try:
+                if dim != 1 and not column:   
+                    #print(line) 
+                    #print(line.replace(",",""))                    
+                    #complex_converted = np.fromstring(line.replace(",",""), sep=" ", dtype=np.float64)
+                    #complex_converted = complex_converted[::2] + 1j*complex_converted[1::2]
+                    #print(complex_converted)
+                    #break
+                    numbers = line.split(delim)
+                    complex_converted = [complex(*map(float, x.split())) for x in numbers]
+                elif dim !=1 and column:
+                    numbers = line.split(delim)
+                    complex_converted = complex(*map(float, numbers[column].split()))
+                else:
+                    #print(line)
+                    line = line.replace(",","")
+                    #print(line)
+                    complex_converted = complex(*map(float, line.split()))
+                #except:
+                #    numbers[-1] = numbers[-1].replace('\n', '')
+                #    complex_converted = [complex(*map(float, x.split())) for x in numbers]
                 data.append(complex_converted)
-    #print(data)
-    if (data[1][-1] == "sum"):
-        #data = pd.DataFrame(data[1:],columns=data[0]+["sum"])
-        data = np.array(data[1:])
-    else:
-        #data = pd.DataFrame(data[1:],columns=data[0])
-        data = np.array(data[1:])
-    name = beta + " " + twist_c
-    print(name)
-    return name,data
+        data = np.array(data[:-2])
+        print("Data array shape:", np.shape(data))
+        print("First row of data:", data[0])
+        name = beta + " " + twist_c
+        return name, data
 
-def load_data_file_real(file, data_line, delim):
+def load_data_file_real(file, data_line, delim, dim=1, column=None,skip_lines=2,data_type=float):
     f = open(file,'r')
     data = []
     beginRead = False
     beta = None
+    line_data = None
     for line in f:
-        if not beginRead:
-            if line.startswith('beta'):
-                beta = str(line.split()[1])
-            if line.startswith('twist_coeff'):
-                twist_c = str(line.split()[1])
-            if line.startswith('MEASURE start'):
-                beginRead = True
-        elif line.startswith('MEASURE end'):
-            beginRead = False
+        if line.startswith('beta'):
+            beta = str(line.split()[1])
+        elif line.startswith('twist_coeff') or line.startswith('twist coeff'):
+            twist_c = str(line.split()[1])
         elif line.startswith(data_line):
-            line = line.split(':')[1]
-            #print(line.split())
-            line_data = line.split(delim)
-            if line_data[-1] == " sum\n" or line_data[-1] == "sum":
+            if (skip_lines != 0) or ('sum' in line):
+                skip_lines -= 1
                 continue
-            elif len(line_data) == 1:
-                data.append(float(line_data[0]))
+            line = line.split(':')[1].replace('\n','')
+            if (dim != 1) and (not column):
+                line_data = line.split(delim)
+                data.append(np.array(line_data, dtype=float))
+            elif dim !=1 and column != None:
+                if delim != None:
+                    line_data = line.split()[column]
+                    data.append(np.array(line_data, dtype=float))
+                else:
+                    line_data = line.split(delim)[column]
+                    data.append(np.array(line_data, dtype=float))
             else:
+                line_data = line
                 data.append(np.array(line_data, dtype=float))
 
+            
+            
+            # elif len(line_data) == 1:
+            #     data.append(float(line_data[0]))
+            #else:
+            
+            #break
+
     #data = pd.DataFrame(data[1:],columns=data[0],dtype=np.float32)
-    data = np.array(data[1:])
+    data = np.array(data[:-2])
+    print("Data array shape:", np.shape(data))
+    print("First row of data:", data[0])
     name = beta + " " + twist_c
-    print(name)
     return name,data
 
-def load_from_folder(folder,data_line,real_or_complex,delim=None):
+def load_from_folder(folder,data_line,real_or_complex,delim=None,dim=1,column=None):
+    print("Loading data from folder: ",folder)
     data_per_file = {}
     if real_or_complex == "real":
         load_func = load_data_file_real
@@ -88,11 +111,10 @@ def load_from_folder(folder,data_line,real_or_complex,delim=None):
         
     for root,dirs,files in os.walk(folder):
         for name in files:
-            print(name)
             #print(os.path.join(root,name))
-            if ("out.txt" in name) or  ("suN_" in name):
+            if ("out" in name) or  ("suN_" in name):
                 print(name)
-                name,data = load_func(os.path.join(root,name), data_line, delim)
+                name,data = load_func(os.path.join(root,name), data_line, delim,dim=dim,column=column)
                 #data = data['sum'].to_numpy()
                 #columns = list(data.columns.values)
                 #columns = columns[-len(columns)//2:] + columns[:-len(columns)//2]
@@ -117,7 +139,7 @@ def read_reweight_data(file_name):
     return (data[0],data[1:],file_name.split("_")[-2])
 
 
-def read_surface_data(file_path, file_name="surface_smooth"):
+def read_surface_data(file_path, file_name="surface_smooth", samples=(0, None)):
     # Initialize an empty list to store all dataframes read from the file
     all_arrays = []
     
@@ -128,7 +150,9 @@ def read_surface_data(file_path, file_name="surface_smooth"):
     # Initialize variables to track the start of each dataframe section
     header_found = False
     data_start_index = None
-    
+    volume_count = 0
+    start_sample, end_sample = samples
+    print("Constructing surface array")
     # Iterate over each line in the file
     for idx, line in enumerate(lines):
         line = line.strip()
@@ -137,6 +161,11 @@ def read_surface_data(file_path, file_name="surface_smooth"):
             volume = np.array(line.split(" ")[1:]).astype(int)
         # Check if the line starts with 'volume:'
         if line.startswith('volume:'):
+            volume_count += 1
+            if volume_count < start_sample:
+                continue
+            if end_sample is not None and volume_count > end_sample:
+                break
             # If header is found and data_start_index is set (indicating previous dataframe section),
             # extract the dataframe section from data_start_index to current index (exclusive)
             if header_found and data_start_index is not None:
@@ -152,7 +181,7 @@ def read_surface_data(file_path, file_name="surface_smooth"):
         array_section = lines[data_start_index:]
         array = np.loadtxt(io.StringIO('\n'.join(array_section)), delimiter=' ', skiprows=3)
         all_arrays.append(array)
-    return volume,np.array(all_arrays)
+    return volume, np.array(all_arrays)
 
 def read_fourier_profile(file_path, file_name="fourier_profile_*"):
     # Initialize an empty list to store all dataframes read from the file
@@ -185,7 +214,6 @@ def read_fourier_profile(file_path, file_name="fourier_profile_*"):
             # Reset header_found and set new data_start_index
             header_found = True
             data_start_index = idx
-        
     # After loop ends, extract the last dataframe section if any
     if header_found and data_start_index is not None:
         array_section = lines[data_start_index:]
